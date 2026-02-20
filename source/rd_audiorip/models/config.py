@@ -102,7 +102,7 @@ class Config:
         self.save()
     
     def set_flac_compression_level(self, level: int) -> None:
-        self.data["settings"]["flac_compression_level"] = max(0, min(8, level))
+        self.data["settings"]["flac_compression_level"] = max(0, min(12, level))
         self.save()
     
     def set_i_have_donated(self, value: bool) -> None:

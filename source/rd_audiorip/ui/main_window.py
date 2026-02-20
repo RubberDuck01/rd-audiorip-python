@@ -1,7 +1,10 @@
 import webbrowser
 from pathlib import Path
+from rd_audiorip.models.config import Config
+from rd_audiorip.ui.settings_dialog import SettingsDialog
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -14,7 +17,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget
 )
-from rd_audiorip.models.config import Config
 
 class MainWindow(QMainWindow):
     download_requested = pyqtSignal(str, str)
@@ -124,7 +126,10 @@ class MainWindow(QMainWindow):
         self.url_input.clear()
     
     def open_settings(self) -> None:
-        self.set_status("Settings dialog not implemented yet.")
+        dialog = SettingsDialog(self, self.config)
+        if dialog.exec():
+            self.output_input.setText(self.config.downloads_dir)
+            self.set_status("Settings saved!")
     
     def clear_queue(self) -> None:
         self.queue_list.clear()
