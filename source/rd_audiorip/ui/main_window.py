@@ -14,11 +14,14 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QWidget
 )
+from rd_audiorip.models.config import Config
+
 class MainWindow(QMainWindow):
     download_requested = pyqtSignal(str, str)
     
-    def __init__(self) -> None:
+    def __init__(self, config: Config) -> None:
         super().__init__()
+        self.config = config
         self.setWindowTitle("Rubber Duck's AudioRip")
         self.resize(760, 500)
         
@@ -26,12 +29,22 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
         
         file_menu = menubar.addMenu("&File")
+        file_menu.addAction("&Open Downloads Directory", self.browse_output)
         file_menu.addAction("&Settings", self.open_settings)
         file_menu.addSeparator()
-        file_menu.addAction("&Exit", self.close)
+        file_menu.addAction("&Quit", self.close)
         
         edit_menu = menubar.addMenu("&Edit")
         edit_menu.addAction("&Clear Queue", self.clear_queue)
+        
+        view_menu = menubar.addMenu("&View")
+        view_menu.addAction("&My Statistics", lambda: self.set_status("Statistics view not implemented yet."))
+        view_menu.addAction("&My Configuration", lambda: self.set_status("Configuration view not implemented yet."))
+        
+        tools_menu = menubar.addMenu("&Tools")
+        tools_menu.addAction("&Check for Updates", lambda: self.set_status("Update checker not implemented yet."))
+        tools_menu.addAction("&yt-dlp Configuration", lambda: self.set_status("yt-dlp configuration not implemented yet."))
+        tools_menu.addAction("&FFmpeg Configuration", lambda: self.set_status("FFmpeg configuration not implemented yet."))
         
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction("&View on GitHub", self.visit_github)
@@ -58,7 +71,7 @@ class MainWindow(QMainWindow):
         #? Output directory:
         self.layout.addWidget(QLabel("Output directory:"))
         out_row = QHBoxLayout()
-        self.output_input = QLineEdit(str(Path.home() / "Downloads"))
+        self.output_input = QLineEdit(self.config.downloads_dir)
         browse_btn = QPushButton("Browse...")
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(self.output_input, stretch=1)
@@ -86,6 +99,7 @@ class MainWindow(QMainWindow):
         directory = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_input.text())
         if directory:
             self.output_input.setText(directory)
+            self.config.set_downloads_dir(directory)
     
     def on_download_clicked(self) -> None:
         self.download_requested.emit(self.url_input.text().strip(), self.output_input.text().strip())
