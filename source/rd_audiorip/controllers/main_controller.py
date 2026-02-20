@@ -1,6 +1,6 @@
 from pathlib import Path
 from PyQt6.QtCore import QObject, QThread
-from rd_audiorip.services.downloader import DownloadWorker
+from rd_audiorip.services.downloader import DownloadWorker, get_video_info
 from rd_audiorip.ui.main_window import MainWindow
 
 class MainController(QObject):
@@ -24,6 +24,11 @@ class MainController(QObject):
         if not Path(output_dir).exists():
             self.window.set_status("Output directory does not exist!")
             return
+        
+        self.window.set_status("Fetching video info...")
+        info = get_video_info(url)
+        display_text = info if info else url
+        self.window.add_to_queue(display_text)
         
         self.window.set_busy(True)
         self.window.set_progress(0)

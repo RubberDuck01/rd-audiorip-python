@@ -19,6 +19,27 @@ def find_tool_exe(exe_name: str) -> str | None:
     
     return shutil.which(exe_name)
 
+def get_video_info(url: str) -> str | None:
+    ytdlp = find_tool_exe("yt-dlp.exe")
+    if not ytdlp:
+        return None
+    
+    try:
+        result = subprocess.run(
+            [ytdlp, "--print", "%(uploader)s: %(title)s", url],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            encoding="utf-8",
+            errors="replace"
+        )
+        
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return None
+
 class DownloadWorker(QObject):
     progress = pyqtSignal(int)
     status = pyqtSignal(str)
@@ -52,6 +73,7 @@ class DownloadWorker(QObject):
             "--embed-metadata",
             "-x",
             "--audio-format", "mp3",
+            "--output", "%(title)s.%(ext)s",
             "--postprocessor-args", "ffmpeg:-codec:a libmp3lame -b:a 320k -ar 48000",
             "--ffmpeg-location", ffmpeg,
             "-P", self.output_dir,

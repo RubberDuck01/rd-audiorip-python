@@ -1,3 +1,4 @@
+import webbrowser
 from pathlib import Path
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -5,7 +6,9 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMainWindow,
+    QMenuBar,
     QPushButton,
     QProgressBar,
     QVBoxLayout,
@@ -17,34 +20,63 @@ class MainWindow(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.setWindowTitle("Rubber Duck's AudioRip")
-        self.resize(760, 240)
+        self.resize(760, 500)
         
+        #? Menu bar:
+        menubar = self.menuBar()
+        
+        file_menu = menubar.addMenu("&File")
+        file_menu.addAction("&Settings", self.open_settings)
+        file_menu.addSeparator()
+        file_menu.addAction("&Exit", self.close)
+        
+        edit_menu = menubar.addMenu("&Edit")
+        edit_menu.addAction("&Clear Queue", self.clear_queue)
+        
+        help_menu = menubar.addMenu("&Help")
+        help_menu.addAction("&View on GitHub", self.visit_github)
+        help_menu.addAction("&About RD AudioRip", self.open_about)
+        help_menu.addAction("&About Qt", self.open_about_qt)
+        
+        #? Main UI:
         root = QWidget(self)
         self.layout = QVBoxLayout(root)
         
-        self.layout.addWidget(QLabel("YouTube URL"))
+        #? URL input:
+        url_row = QHBoxLayout()
+        url_row.addWidget(QLabel("YouTube URL:"))
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("https://www.youtube.com/watch?v=...")
-        self.layout.addWidget(self.url_input)
+        url_row.addWidget(self.url_input, stretch=1)
         
-        self.layout.addWidget(QLabel("Output Directory"))
+        self.download_btn = QPushButton("Download")
+        self.download_btn.setFixedWidth(120)
+        self.download_btn.clicked.connect(self.on_download_clicked)
+        url_row.addWidget(self.download_btn)
+        self.layout.addLayout(url_row)
+        
+        #? Output directory:
+        self.layout.addWidget(QLabel("Output directory:"))
         out_row = QHBoxLayout()
-        self.output_input = QLineEdit(str(Path.home() / "Music"))
+        self.output_input = QLineEdit(str(Path.home() / "Downloads"))
         browse_btn = QPushButton("Browse...")
         browse_btn.clicked.connect(self.browse_output)
-        out_row.addWidget(self.output_input)
+        out_row.addWidget(self.output_input, stretch=1)
         out_row.addWidget(browse_btn)
         self.layout.addLayout(out_row)
         
-        self.download_btn = QPushButton("Download")
-        self.download_btn.clicked.connect(self.on_download_clicked)
-        self.layout.addWidget(self.download_btn)
-        
-        self.progress_bar = QProgressBar()
-        self.progress_bar.setRange(0, 100)
-        self.progress_bar.setValue(0)
-        self.layout.addWidget(self.progress_bar)
-        
+        #? Queue:
+        self.layout.addWidget(QLabel("Download Queue:"))
+        self.queue_list = QListWidget()
+        self.layout.addWidget(self.queue_list, stretch=1)
+
+        #? Progress bar:
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.layout.addWidget(self.progress)
+
+        #? Status label:
         self.status_label = QLabel("Ready!")
         self.layout.addWidget(self.status_label)
         
@@ -64,12 +96,33 @@ class MainWindow(QMainWindow):
         self.output_input.setEnabled(not busy)
     
     def set_progress(self, value: int) -> None:
-        self.progress_bar.setValue(max(0, min(100, value)))
+        self.progress.setValue(max(0, min(100, value)))
     
     def set_status(self, text: str) -> None:
         self.status_label.setText(text)
+    
+    def add_to_queue(self, display_text: str) -> None:
+        self.queue_list.addItem(display_text)
     
     def on_download_success(self, message: str) -> None:
         self.set_progress(100)
         self.set_status(message)
         self.url_input.clear()
+    
+    def open_settings(self) -> None:
+        self.set_status("Settings dialog not implemented yet.")
+    
+    def clear_queue(self) -> None:
+        self.queue_list.clear()
+        self.set_status("Download queue cleared.")
+    
+    def visit_github(self) -> None:
+        webbrowser.open("https://github.com/RubberDuck01/rd-audiorip-python")
+    
+    def open_about(self) -> None:
+        self.set_status("RD AudioRip - A simple YouTube audio downloader built with Python and PyQt6.")
+    
+    def open_about_qt(self) -> None:
+        self.set_status("This application uses Qt for its graphical user interface.")
+    
+    
