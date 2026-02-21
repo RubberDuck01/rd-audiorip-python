@@ -35,7 +35,14 @@ class MainController(QObject):
         self.window.set_status("Starting download...")
         
         self._thread = QThread()
-        self.worker = DownloadWorker(url=url, output_dir=output_dir)
+        self.worker = DownloadWorker(
+            url=url,
+            output_dir=output_dir,
+            preferred_format=self.window.config.preferred_format,
+            embed_thumbnail=self.window.config.album_art,
+            embed_metadata=self.window.config.metadata,
+            flac_compression_level=self.window.config.flac_compression_level
+        )
         self.worker.moveToThread(self._thread)
         
         self._thread.started.connect(self.worker.run)

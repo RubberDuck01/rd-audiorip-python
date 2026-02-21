@@ -46,10 +46,14 @@ class DownloadWorker(QObject):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
     
-    def __init__(self, url: str, output_dir: str) -> None:
+    def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int) -> None:
         super().__init__()
         self.url = url
         self.output_dir = output_dir
+        self.preferred_format = (preferred_format or "mp3").lower()
+        self.embed_thumbnail = embed_thumbnail
+        self.embed_metadata = embed_metadata
+        self.flac_compression_level = flac_compression_level
     
     def run(self) -> None:
         ytdlp = find_tool_exe("yt-dlp.exe")
@@ -64,20 +68,43 @@ class DownloadWorker(QObject):
             return
         self.status.emit(f"Using ffmpeg: {ffmpeg}")
         
+        fmt = self.preferred_format if self.preferred_format in {"mp3", "flac"} else "mp3"
+        
         args = [
             ytdlp,
             "--no-playlist",
             "--newline",
             "-f", "bestaudio",
-            "--embed-thumbnail",
-            "--embed-metadata",
             "-x",
-            "--audio-format", "mp3",
+            "--audio-format", fmt,
             "--output", "%(title)s.%(ext)s",
-            "--postprocessor-args", "ffmpeg:-codec:a libmp3lame -b:a 320k -ar 48000",
             "--ffmpeg-location", ffmpeg,
+        ]
+        
+        if self.embed_thumbnail:
+            args.append("--embed-thumbnail")
+        
+        if self.embed_metadata:
+            args.append("--embed-metadata")
+        
+        if fmt == "mp3":
+            args += [
+                "--postprocessor-args",
+                "ffmpeg:-codec:a libmp3lame -b:a 320k -ar 48000",
+            ]
+            self.status.emit("Format: MP3 (320kbps, 48kHz)")
+        else:
+            level = max(0, min(12, int(self.flac_compression_level)))
+            args += [
+                "--postprocessor-args",
+                f"ffmpeg:-ar 48000 -compression_level {level}",
+            ]
+            self.status.emit(f"Format: FLAC (compression level {level}, 48kHz)")
+        
+        args += [
             "-P", self.output_dir,
             self.url,
+            "--no-warnings",
         ]
         
         self.status.emit("Starting yt-dlp...")

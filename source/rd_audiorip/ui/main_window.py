@@ -49,7 +49,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction("&FFmpeg Configuration", lambda: self.set_status("FFmpeg configuration not implemented yet."))
         
         help_menu = menubar.addMenu("&Help")
-        help_menu.addAction("&View on GitHub", self.visit_github)
+        help_menu.addAction("&View Source on GitHub", self.visit_github)
         help_menu.addAction("&About RD AudioRip", self.open_about)
         help_menu.addAction("&About Qt", self.open_about_qt)
         
