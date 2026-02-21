@@ -1,6 +1,7 @@
 import sys
 from PyQt6.QtWidgets import QApplication
 from rd_audiorip.models.config import Config
+from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.main_window import MainWindow
 from rd_audiorip.controllers.main_controller import MainController
 
@@ -9,8 +10,11 @@ def main() -> int:
     app.setApplicationName("Rubber Duck's AudioRip")
     
     config = Config()
-    window = MainWindow(config)
-    controller = MainController(window)
+    stats = Stats()
+    stats.register_session()
+    
+    window = MainWindow(config, stats)
+    controller = MainController(window, stats)
     window.controller = controller
     
     window.show()

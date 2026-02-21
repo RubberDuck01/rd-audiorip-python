@@ -1,7 +1,9 @@
 import webbrowser
 from pathlib import Path
 from rd_audiorip.models.config import Config
+from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.settings_dialog import SettingsDialog
+from rd_audiorip.ui.stats_dialog import StatsDialog
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
@@ -21,9 +23,10 @@ from PyQt6.QtWidgets import (
 class MainWindow(QMainWindow):
     download_requested = pyqtSignal(str, str)
     
-    def __init__(self, config: Config) -> None:
+    def __init__(self, config: Config, stats: Stats) -> None:
         super().__init__()
         self.config = config
+        self.stats = stats
         self.setWindowTitle("Rubber Duck's AudioRip")
         self.resize(760, 500)
         
@@ -40,7 +43,7 @@ class MainWindow(QMainWindow):
         edit_menu.addAction("&Clear Queue", self.clear_queue)
         
         view_menu = menubar.addMenu("&View")
-        view_menu.addAction("&My Statistics", lambda: self.set_status("Statistics view not implemented yet."))
+        view_menu.addAction("&My Statistics", self.open_stats)
         view_menu.addAction("&My Configuration", lambda: self.set_status("Configuration view not implemented yet."))
         
         tools_menu = menubar.addMenu("&Tools")
@@ -144,4 +147,6 @@ class MainWindow(QMainWindow):
     def open_about_qt(self) -> None:
         self.set_status("This application uses Qt for its graphical user interface.")
     
-    
+    def open_stats(self) -> None:
+        dialog = StatsDialog(self, self.stats)
+        dialog.exec()

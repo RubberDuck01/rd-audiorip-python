@@ -40,6 +40,34 @@ def get_video_info(url: str) -> str | None:
         pass
     return None
 
+def get_video_metrics(url: str) -> tuple[float, int]:
+    ytdlp = find_tool_exe("yt-dlp.exe")
+    if not ytdlp:
+        return 0.0, 0
+    
+    try:
+        result = subprocess.run(
+            [ytdlp, "--print", "%(filesize_approx)s|%(duration)s", "--no-warnings", url],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            encoding="utf-8",
+            errors="replace"
+        )
+        
+        if result.returncode != 0:
+            return 0.0, 0
+        
+        line = result.stdout.strip().splitlines()[0] if result.stdout.strip() else ""
+        raw_size, raw_duration = (line.split("|", 1) + ["0"])[:2]
+        
+        size_b = int(raw_size) if raw_size.isdigit() else 0
+        duration_s = int(float(raw_duration)) if raw_duration else 0
+        
+        return size_b / (1024 * 1024), max(0, duration_s)
+    except Exception:
+        return 0.0, 0
+
 class DownloadWorker(QObject):
     progress = pyqtSignal(int)
     status = pyqtSignal(str)
