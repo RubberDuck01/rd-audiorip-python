@@ -28,7 +28,7 @@ class MainWindow(QMainWindow):
         self.config = config
         self.stats = stats
         self.setWindowTitle("Rubber Duck's AudioRip")
-        self.resize(760, 500)
+        self.resize(530, 400)
         
         #? Menu bar:
         menubar = self.menuBar()
