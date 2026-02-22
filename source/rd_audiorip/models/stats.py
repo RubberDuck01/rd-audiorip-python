@@ -8,7 +8,7 @@ class Stats:
     def __init__(self) -> None:
         #? Win/Linux paths:
         if os.name == "nt":
-            base = Path(os.getenv("APPDATA", Path.home() / "AppData" / "Roaming"))
+            base = Path(os.getenv("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         else:
             base = Path.home() / ".config"
         
