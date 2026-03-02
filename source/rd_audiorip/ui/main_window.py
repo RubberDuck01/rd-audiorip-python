@@ -4,6 +4,7 @@ from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
+from rd_audiorip.ui.update_dialog import UpdateDialog
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
@@ -47,7 +48,7 @@ class MainWindow(QMainWindow):
         view_menu.addAction("&My Configuration", lambda: self.set_status("Configuration view not implemented yet."))
         
         tools_menu = menubar.addMenu("&Tools")
-        tools_menu.addAction("&Check for Updates", lambda: self.set_status("Update checker not implemented yet."))
+        tools_menu.addAction("&Download / Update Tools", self.open_update_dialog)
         tools_menu.addAction("&yt-dlp Configuration", lambda: self.set_status("yt-dlp configuration not implemented yet."))
         tools_menu.addAction("&FFmpeg Configuration", lambda: self.set_status("FFmpeg configuration not implemented yet."))
         
@@ -147,6 +148,10 @@ class MainWindow(QMainWindow):
     def open_about_qt(self) -> None:
         self.set_status("This application uses Qt for its graphical user interface.")
     
+    def open_update_dialog(self) -> None:
+        dialog = UpdateDialog(self)
+        dialog.exec()
+
     def open_stats(self) -> None:
         dialog = StatsDialog(self, self.stats)
         dialog.exec()

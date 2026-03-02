@@ -1,3 +1,4 @@
+import platform
 import re
 import shutil
 import subprocess
@@ -6,6 +7,7 @@ from pathlib import Path
 from PyQt6.QtCore import QObject, pyqtSignal
 
 _PROGRESS_RE = re.compile(r"(\d{1,3}(?:\.\d+)?)%")
+_EXE = ".exe" if platform.system() == "Windows" else ""
 
 def find_tool_exe(exe_name: str) -> str | None:
     base = Path(sys.argv[0]).resolve().parent
@@ -20,7 +22,7 @@ def find_tool_exe(exe_name: str) -> str | None:
     return shutil.which(exe_name)
 
 def get_video_info(url: str) -> str | None:
-    ytdlp = find_tool_exe("yt-dlp.exe")
+    ytdlp = find_tool_exe(f"yt-dlp{_EXE}")
     if not ytdlp:
         return None
     
@@ -41,7 +43,7 @@ def get_video_info(url: str) -> str | None:
     return None
 
 def get_video_metrics(url: str) -> tuple[float, int]:
-    ytdlp = find_tool_exe("yt-dlp.exe")
+    ytdlp = find_tool_exe(f"yt-dlp{_EXE}")
     if not ytdlp:
         return 0.0, 0
     
@@ -84,13 +86,13 @@ class DownloadWorker(QObject):
         self.flac_compression_level = flac_compression_level
     
     def run(self) -> None:
-        ytdlp = find_tool_exe("yt-dlp.exe")
+        ytdlp = find_tool_exe(f"yt-dlp{_EXE}")
         if not ytdlp:
             self.error.emit("yt-dlp executable not found!")
             return
         self.status.emit(f"Using yt-dlp: {ytdlp}")
         
-        ffmpeg = find_tool_exe("ffmpeg.exe")
+        ffmpeg = find_tool_exe(f"ffmpeg{_EXE}")
         if not ffmpeg:
             self.error.emit("ffmpeg executable not found!")
             return

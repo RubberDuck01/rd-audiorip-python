@@ -1,6 +1,7 @@
 from pathlib import Path
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFileDialog,
     QHBoxLayout,
@@ -18,7 +19,7 @@ class SettingsDialog(QDialog):
         super().__init__(parent)
         self.config = config
         self.setWindowTitle("Settings")
-        self.setGeometry(100, 100, 600, 300)
+        self.setGeometry(100, 100, 600, 340)
         self.setModal(True)
 
         layout = QVBoxLayout(self)
@@ -32,6 +33,16 @@ class SettingsDialog(QDialog):
         dir_row.addWidget(self.dir_input, stretch=1)
         dir_row.addWidget(browse_btn)
         layout.addLayout(dir_row)
+
+        #? Preferred format:
+        fmt_row = QHBoxLayout()
+        fmt_row.addWidget(QLabel("Preferred Format:"))
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["mp3", "flac"])
+        self.format_combo.setCurrentText(self.config.preferred_format)
+        fmt_row.addWidget(self.format_combo)
+        fmt_row.addStretch()
+        layout.addLayout(fmt_row)
 
         #? Album art:
         self.album_art_check = QCheckBox("Include Album Art")
@@ -80,6 +91,7 @@ class SettingsDialog(QDialog):
 
     def _on_ok(self) -> None:
         self.config.set_downloads_dir(self.dir_input.text())
+        self.config.set_preferred_format(self.format_combo.currentText())
         self.config.set_album_art(self.album_art_check.isChecked())
         self.config.set_metadata(self.metadata_check.isChecked())
         self.config.set_auto_update(self.auto_update_check.isChecked())
