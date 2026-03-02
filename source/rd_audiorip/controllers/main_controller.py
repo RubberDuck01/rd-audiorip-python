@@ -11,8 +11,8 @@ class MainController(QObject):
         self.stats = stats
         self._thread: QThread | None = None
         self.worker: DownloadWorker | None = None
-        self.pending_size_mb: float = 0.0
-        self.pending_duration_sec: int = 0
+        self.track_size: float = 0.0
+        self.track_duration: int = 0
         
         self.window.download_requested.connect(self.start_download)
     
@@ -34,7 +34,7 @@ class MainController(QObject):
         display_text = info if info else url
         self.window.add_to_queue(display_text)
         
-        self.pending_size_mb, self.pending_duration_sec = get_video_metrics(url)
+        self.track_size, self.track_duration = get_video_metrics(url)
         
         self.window.set_busy(True)
         self.window.set_progress(0)
@@ -65,17 +65,17 @@ class MainController(QObject):
     
     def on_finished(self, message: str) -> None:
         self.stats.add_successful_download(
-            size_mb=self.pending_size_mb,
-            duration_sec=self.pending_duration_sec
+            size_mb=self.track_size,
+            duration_sec=self.track_duration
         )
-        self.pending_size_mb = 0.0
-        self.pending_duration_sec = 0
+        self.track_size = 0.0
+        self.track_duration = 0
         self.window.on_download_success(message)
         self.window.set_busy(False)
     
     def on_error(self, message: str) -> None:
-        self.pending_size_mb = 0.0
-        self.pending_duration_sec = 0
+        self.track_size = 0.0
+        self.track_duration = 0
         self.window.set_status(f"Error: {message}")
         self.window.set_busy(False)
     
