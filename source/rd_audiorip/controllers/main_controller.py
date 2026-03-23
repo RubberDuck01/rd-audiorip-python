@@ -28,8 +28,7 @@ class MainController(QObject):
         if not Path(output_dir).exists():
             self.window.set_status("Output directory does not exist!")
             return
-        
-        self.window.set_status("Fetching video info...")
+
         info = get_video_info(url)
         display_text = info if info else url
         self.window.add_to_queue(display_text)
@@ -53,7 +52,6 @@ class MainController(QObject):
         
         self._thread.started.connect(self.worker.run)
         self.worker.progress.connect(self.window.set_progress)
-        self.worker.status.connect(self.window.set_status)
         self.worker.finished.connect(self.on_finished)
         self.worker.error.connect(self.on_error)
         
