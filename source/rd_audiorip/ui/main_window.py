@@ -21,6 +21,7 @@ from PyQt6.QtWidgets import (
 
 from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
+from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
 from rd_audiorip.ui.ytdlp_dialog import YtdlpDialog
@@ -57,6 +58,7 @@ class MainWindow(QMainWindow):
 
         tools_menu = menubar.addMenu("&Tools")
         tools_menu.addAction(QAction("&Check yt-dlp Updates", self, triggered=self.open_ytdlp_manager))
+        tools_menu.addAction(QAction("&Manage FFmpeg", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
@@ -93,29 +95,45 @@ class MainWindow(QMainWindow):
 
         action_bar = QHBoxLayout()
         action_bar.setSpacing(10)
+        action_bar.setContentsMargins(0, 6, 0, 0)
 
         self.open_folder_btn = QPushButton("Open Folder")
         self.open_folder_btn.setObjectName("toolbarButton")
+        self.open_folder_btn.setMinimumWidth(136)
         self.open_folder_btn.clicked.connect(self.open_downloads_directory)
         action_bar.addWidget(self.open_folder_btn)
 
         self.settings_btn = QPushButton("Settings")
         self.settings_btn.setObjectName("toolbarButton")
+        self.settings_btn.setMinimumWidth(136)
         self.settings_btn.clicked.connect(self.open_settings)
         action_bar.addWidget(self.settings_btn)
 
         self.stats_btn = QPushButton("Statistics")
         self.stats_btn.setObjectName("toolbarButton")
+        self.stats_btn.setMinimumWidth(136)
         self.stats_btn.clicked.connect(self.open_stats)
         action_bar.addWidget(self.stats_btn)
 
         self.ytdlp_btn = QPushButton("yt-dlp Manager")
         self.ytdlp_btn.setObjectName("toolbarButton")
+        self.ytdlp_btn.setMinimumWidth(136)
         self.ytdlp_btn.clicked.connect(self.open_ytdlp_manager)
         action_bar.addWidget(self.ytdlp_btn)
 
+        self.ffmpeg_btn = QPushButton("FFmpeg")
+        self.ffmpeg_btn.setObjectName("toolbarButton")
+        self.ffmpeg_btn.setMinimumWidth(136)
+        self.ffmpeg_btn.clicked.connect(self.open_ffmpeg_manager)
+        action_bar.addWidget(self.ffmpeg_btn)
+
         action_bar.addStretch()
         hero_layout.addLayout(action_bar)
+
+        toolbar_divider = QFrame()
+        toolbar_divider.setObjectName("toolbarDivider")
+        toolbar_divider.setFixedHeight(2)
+        hero_layout.addWidget(toolbar_divider)
         self.layout.addWidget(hero_card)
 
         input_card = QFrame()
@@ -143,11 +161,13 @@ class MainWindow(QMainWindow):
         url_row.setSpacing(10)
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("https://www.youtube.com/watch?v=...")
+        self.url_input.setMinimumHeight(44)
         url_row.addWidget(self.url_input, stretch=1)
 
         self.download_btn = QPushButton("Start Download")
         self.download_btn.setObjectName("primaryButton")
-        self.download_btn.setMinimumWidth(150)
+        self.download_btn.setFixedWidth(168)
+        self.download_btn.setMinimumHeight(44)
         self.download_btn.clicked.connect(self.on_download_clicked)
         url_row.addWidget(self.download_btn)
         input_layout.addLayout(url_row)
@@ -159,10 +179,14 @@ class MainWindow(QMainWindow):
         out_row = QHBoxLayout()
         out_row.setSpacing(10)
         self.output_input = QLineEdit(self.config.downloads_dir)
+        self.output_input.setReadOnly(True)
+        self.output_input.setMinimumHeight(44)
         out_row.addWidget(self.output_input, stretch=1)
 
         browse_btn = QPushButton("Choose Folder")
         browse_btn.setObjectName("glassButton")
+        browse_btn.setFixedWidth(168)
+        browse_btn.setMinimumHeight(44)
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(browse_btn)
         input_layout.addLayout(out_row)
@@ -276,6 +300,10 @@ class MainWindow(QMainWindow):
         dialog = YtdlpDialog(self)
         dialog.exec()
 
+    def open_ffmpeg_manager(self) -> None:
+        dialog = FfmpegDialog(self)
+        dialog.exec()
+
     def clear_queue(self) -> None:
         self.queue_list.clear()
         self.set_status("Download queue cleared.")
@@ -303,10 +331,10 @@ class MainWindow(QMainWindow):
             QWidget#root {
                 background: qradialgradient(cx:0.2, cy:0.05, radius:1.2,
                     fx:0.25, fy:0.1,
-                    stop:0 #1a3b53,
-                    stop:0.22 #0d5d7c,
-                    stop:0.52 #11355b,
-                    stop:0.8 #0a172b,
+                    stop:0 #183848,
+                    stop:0.18 #0d5a67,
+                    stop:0.42 #1a4a52,
+                    stop:0.76 #0c1a2d,
                     stop:1 #060b14);
             }
             QMainWindow {
@@ -318,7 +346,7 @@ class MainWindow(QMainWindow):
                 font-size: 12px;
             }
             QLabel#eyebrow {
-                color: #8cf4d4;
+                color: #8bd7c7;
                 font-size: 10px;
                 font-weight: 700;
                 letter-spacing: 1px;
@@ -329,7 +357,7 @@ class MainWindow(QMainWindow):
                 color: #ffffff;
             }
             QLabel#subtitle {
-                color: #b6efff;
+                color: #a9d5d8;
                 font-size: 13px;
             }
             QLabel#sectionTitle {
@@ -338,82 +366,76 @@ class MainWindow(QMainWindow):
                 color: #f6ffff;
             }
             QLabel#sectionHint {
-                color: #9fd8e7;
+                color: #94bfc7;
                 font-size: 12px;
             }
             QLabel#fieldLabel {
-                color: #dffcff;
+                color: #d4ecef;
                 font-size: 11px;
                 font-weight: 700;
             }
             QLabel#status {
-                color: #d7fff4;
+                color: #cbe9de;
                 font-style: italic;
             }
             QFrame#heroCard, QFrame#sectionCard, QFrame#footerCard {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(28, 75, 110, 0.82),
-                    stop:0.45 rgba(14, 43, 71, 0.9),
+                    stop:0 rgba(25, 73, 84, 0.86),
+                    stop:0.38 rgba(16, 45, 63, 0.92),
                     stop:1 rgba(8, 20, 37, 0.92));
-                border: 1px solid rgba(107, 221, 255, 0.42);
+                border: 1px solid rgba(84, 183, 177, 0.34);
                 border-radius: 18px;
+            }
+            QFrame#toolbarDivider {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
+                    stop:0 rgba(79, 197, 168, 0.0),
+                    stop:0.5 rgba(104, 205, 197, 0.75),
+                    stop:1 rgba(79, 197, 168, 0.0));
+                border-radius: 1px;
             }
             QLineEdit, QListWidget {
                 background: rgba(3, 14, 28, 0.62);
                 color: #f5ffff;
-                border: 1px solid rgba(106, 226, 255, 0.5);
+                border: 1px solid rgba(88, 183, 177, 0.45);
                 border-radius: 12px;
                 padding: 10px 12px;
-                selection-background-color: rgba(28, 227, 255, 0.35);
+                selection-background-color: rgba(51, 176, 171, 0.35);
             }
             QListWidget {
                 outline: none;
             }
-            QPushButton {
-                border-radius: 12px;
-                padding: 9px 14px;
-                font-weight: 700;
-            }
             QPushButton#toolbarButton, QPushButton#glassButton {
                 color: #eaffff;
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(87, 210, 255, 0.28),
-                    stop:1 rgba(15, 61, 92, 0.7));
-                border: 1px solid rgba(110, 230, 255, 0.46);
+                    stop:0 rgba(60, 153, 150, 0.34),
+                    stop:1 rgba(17, 54, 79, 0.78));
+                border: 1px solid rgba(90, 188, 182, 0.4);
             }
             QPushButton#toolbarButton:hover, QPushButton#glassButton:hover {
-                border: 1px solid rgba(133, 255, 236, 0.72);
+                border: 1px solid rgba(122, 211, 193, 0.7);
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(116, 235, 255, 0.4),
-                    stop:1 rgba(20, 78, 114, 0.78));
+                    stop:0 rgba(81, 181, 176, 0.4),
+                    stop:1 rgba(26, 72, 95, 0.82));
             }
             QPushButton#primaryButton {
-                color: #06233c;
+                color: #efffff;
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #fff6a3,
-                    stop:0.34 #9cf9d9,
-                    stop:1 #3ce1ff);
-                border: 1px solid #9dfde2;
+                    stop:0 #3ea4a5,
+                    stop:0.45 #2f7b96,
+                    stop:1 #274c7b);
+                border: 1px solid #7dd0c7;
             }
             QPushButton#primaryButton:hover {
                 background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #fffac0,
-                    stop:0.34 #b8ffe5,
-                    stop:1 #5ee9ff);
-            }
-            QPushButton:pressed {
-                padding-top: 10px;
-            }
-            QPushButton:disabled {
-                color: #7895a5;
-                background: rgba(31, 58, 74, 0.72);
-                border: 1px solid rgba(91, 123, 142, 0.42);
+                    stop:0 #46b0b0,
+                    stop:0.45 #3688a1,
+                    stop:1 #2e5888);
             }
             QProgressBar {
                 min-height: 22px;
                 border-radius: 11px;
                 background: rgba(4, 18, 33, 0.78);
-                border: 1px solid rgba(110, 235, 255, 0.45);
+                border: 1px solid rgba(91, 188, 177, 0.42);
                 color: #efffff;
                 text-align: center;
                 font-weight: 700;
@@ -421,36 +443,9 @@ class MainWindow(QMainWindow):
             QProgressBar::chunk {
                 border-radius: 11px;
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #f4e06e,
-                    stop:0.35 #4df1c4,
-                    stop:1 #2cb9ff);
-            }
-            QMenuBar {
-                background: rgba(5, 18, 33, 0.82);
-                color: #e9ffff;
-                border-bottom: 1px solid rgba(95, 218, 255, 0.28);
-                padding: 4px;
-            }
-            QMenuBar::item {
-                padding: 6px 10px;
-                border-radius: 8px;
-                background: transparent;
-            }
-            QMenuBar::item:selected {
-                background: rgba(77, 210, 255, 0.2);
-            }
-            QMenu {
-                background: rgba(7, 21, 38, 0.96);
-                color: #efffff;
-                border: 1px solid rgba(103, 223, 255, 0.35);
-                padding: 6px;
-            }
-            QMenu::item {
-                padding: 8px 18px;
-                border-radius: 8px;
-            }
-            QMenu::item:selected {
-                background: rgba(54, 231, 220, 0.2);
+                    stop:0 #2f8a89,
+                    stop:0.45 #39a9a3,
+                    stop:1 #4e86bf);
             }
             """
         )

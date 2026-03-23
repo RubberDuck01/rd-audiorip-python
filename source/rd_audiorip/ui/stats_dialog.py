@@ -121,9 +121,9 @@ class StatsDialog(QDialog):
             QDialog {
                 background: qradialgradient(cx:0.2, cy:0.1, radius:1.15,
                     fx:0.22, fy:0.12,
-                    stop:0 #16364f,
-                    stop:0.25 #0a5b7d,
-                    stop:0.62 #102b48,
+                    stop:0 #16354a,
+                    stop:0.25 #0a596d,
+                    stop:0.62 #10283f,
                     stop:1 #060b14);
                 color: #f0feff;
             }
@@ -136,7 +136,7 @@ class StatsDialog(QDialog):
                 color: #ffffff;
             }
             QLabel#dialogSubtitle {
-                color: #b4e8f6;
+                color: #a8ced5;
                 font-size: 13px;
             }
             QLabel#cardTitle, QLabel#statTitle, QLabel#miniTitle {
@@ -149,33 +149,18 @@ class StatsDialog(QDialog):
                 font-weight: 700;
             }
             QLabel#detailValue {
-                color: #fff2a9;
+                color: #9fded4;
                 font-weight: 700;
             }
             QLabel#cardSubtitle {
-                color: #94cfe0;
+                color: #8ab5be;
             }
             QFrame#card {
                 background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(25, 73, 105, 0.84),
+                    stop:0 rgba(23, 67, 89, 0.84),
                     stop:1 rgba(8, 19, 35, 0.94));
-                border: 1px solid rgba(103, 222, 255, 0.34);
+                border: 1px solid rgba(88, 181, 176, 0.34);
                 border-radius: 18px;
-            }
-            QPushButton {
-                border-radius: 12px;
-                padding: 9px 14px;
-                font-weight: 700;
-            }
-            QPushButton#glassButton {
-                color: #ebffff;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(92, 214, 255, 0.28),
-                    stop:1 rgba(16, 63, 95, 0.72));
-                border: 1px solid rgba(108, 226, 255, 0.45);
-            }
-            QPushButton#glassButton:hover {
-                border: 1px solid rgba(144, 255, 236, 0.7);
             }
             """
         )

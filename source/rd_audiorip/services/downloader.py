@@ -1,15 +1,20 @@
+import json
 import re
-import shutil
 import subprocess
 import sys
 import locale
+import tempfile
 import urllib.request
+import zipfile
 from pathlib import Path
+from typing import Any
 from PyQt6.QtCore import QObject, pyqtSignal
 
 _PROGRESS_RE = re.compile(r"(\d{1,3}(?:\.\d+)?)%")
 YTDLP_EXE = "yt-dlp.exe"
 YTDLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
+FFMPEG_EXE = "ffmpeg.exe"
+FFMPEG_DOWNLOAD_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 
 
 def _decode_output(raw: bytes) -> str:
@@ -39,6 +44,10 @@ def get_tools_ytdlp_path() -> Path:
     return get_tools_dir() / YTDLP_EXE
 
 
+def get_tools_ffmpeg_path() -> Path:
+    return get_tools_dir() / FFMPEG_EXE
+
+
 def find_ytdlp_exe() -> str | None:
     path = get_tools_ytdlp_path()
     if path.exists():
@@ -46,17 +55,51 @@ def find_ytdlp_exe() -> str | None:
 
     return None
 
-def find_tool_exe(exe_name: str) -> str | None:
-    base = Path(sys.argv[0]).resolve().parent
-    tools = base / "tools" / exe_name
-    if tools.exists():
-        return str(tools)
-    
-    cwd_tools = Path.cwd() / "tools" / exe_name
-    if cwd_tools.exists():
-        return str(cwd_tools)
-    
-    return shutil.which(exe_name)
+
+def find_ffmpeg_exe() -> str | None:
+    path = get_tools_ffmpeg_path()
+    if path.exists():
+        return str(path)
+
+    return None
+
+
+def _run_tool(command: list[str], timeout: int) -> subprocess.CompletedProcess[bytes] | None:
+    try:
+        return subprocess.run(command, capture_output=True, timeout=timeout)
+    except Exception:
+        return None
+
+
+def _extract_ffmpeg(zip_path: Path, destination: Path) -> None:
+    with zipfile.ZipFile(zip_path) as archive:
+        ffmpeg_member = next(
+            (name for name in archive.namelist() if name.lower().endswith("/bin/ffmpeg.exe")),
+            None,
+        )
+        if ffmpeg_member is None:
+            raise FileNotFoundError("ffmpeg.exe was not found in the downloaded archive.")
+
+        with archive.open(ffmpeg_member) as source, destination.open("wb") as target:
+            target.write(source.read())
+
+
+def get_video_metadata(url: str) -> dict[str, Any] | None:
+    ytdlp = find_ytdlp_exe()
+    if not ytdlp:
+        return None
+
+    result = _run_tool(
+        [ytdlp, "--dump-single-json", "--no-warnings", "--skip-download", "--no-playlist", url],
+        timeout=15,
+    )
+    if result is None or result.returncode != 0:
+        return None
+
+    try:
+        return json.loads(_decode_output(result.stdout))
+    except Exception:
+        return None
 
 
 def get_ytdlp_version() -> str | None:
@@ -64,16 +107,22 @@ def get_ytdlp_version() -> str | None:
     if not ytdlp:
         return None
 
-    try:
-        result = subprocess.run(
-            [ytdlp, "--version"],
-            capture_output=True,
-            timeout=10,
-        )
-        if result.returncode == 0:
-            return _decode_output(result.stdout).strip()
-    except Exception:
+    result = _run_tool([ytdlp, "--version"], timeout=10)
+    if result is not None and result.returncode == 0:
+        return _decode_output(result.stdout).strip()
+
+    return None
+
+
+def get_ffmpeg_version() -> str | None:
+    ffmpeg = find_ffmpeg_exe()
+    if not ffmpeg:
         return None
+
+    result = _run_tool([ffmpeg, "-version"], timeout=10)
+    if result is not None and result.returncode == 0:
+        line = _decode_output(result.stdout).splitlines()
+        return line[0].strip() if line else None
 
     return None
 
@@ -95,58 +144,50 @@ def update_ytdlp() -> tuple[bool, str]:
         return False, "yt-dlp is not installed."
 
     try:
-        result = subprocess.run(
-            [ytdlp, "-U"],
-            capture_output=True,
-            timeout=60,
-        )
-        output = _decode_output(result.stdout or result.stderr).strip()
-        if result.returncode == 0:
-            return True, output or "yt-dlp update command completed."
-        return False, output or "yt-dlp update failed."
+        result = subprocess.run([ytdlp, "-U"], capture_output=True, timeout=60)
     except Exception as ex:
         return False, f"Failed to run yt-dlp update: {ex}"
 
-def get_video_info(url: str) -> str | None:
-    ytdlp = find_ytdlp_exe()
-    if not ytdlp:
-        return None
-    
+    output = _decode_output(result.stdout or result.stderr).strip()
+    if result.returncode == 0:
+        return True, output or "yt-dlp update command completed."
+    return False, output or "yt-dlp update failed."
+
+
+def install_or_update_ffmpeg() -> tuple[bool, str]:
+    destination = get_tools_ffmpeg_path()
+
     try:
-        result = subprocess.run(
-            [ytdlp, "--print", "%(uploader)s: %(title)s", url],
-            capture_output=True,
-            timeout=10,
-        )
-        
-        if result.returncode == 0:
-            return _decode_output(result.stdout).strip()
-    except Exception:
-        pass
-    return None
+        with tempfile.TemporaryDirectory() as temp_dir:
+            archive_path = Path(temp_dir) / "ffmpeg.zip"
+            with urllib.request.urlopen(FFMPEG_DOWNLOAD_URL, timeout=60) as response:
+                archive_path.write_bytes(response.read())
+            _extract_ffmpeg(archive_path, destination)
+        return True, f"FFmpeg installed to {destination}"
+    except Exception as ex:
+        return False, f"Failed to install or update FFmpeg: {ex}"
+
+def get_video_info(url: str) -> str | None:
+    metadata = get_video_metadata(url)
+    if not metadata:
+        return None
+
+    uploader = str(metadata.get("uploader") or metadata.get("channel") or "").strip()
+    title = str(metadata.get("title") or metadata.get("fulltitle") or "").strip()
+    if uploader and title:
+        return f"{uploader}: {title}"
+    return title or uploader or None
 
 def get_video_metrics(url: str) -> tuple[float, int]:
-    ytdlp = find_ytdlp_exe()
-    if not ytdlp:
+    metadata = get_video_metadata(url)
+    if not metadata:
         return 0.0, 0
-    
+
     try:
-        result = subprocess.run(
-            [ytdlp, "--print", "%(filesize_approx)s|%(duration)s", "--no-warnings", url],
-            capture_output=True,
-            timeout=10,
-        )
-        
-        if result.returncode != 0:
-            return 0.0, 0
-        
-        stdout = _decode_output(result.stdout).strip()
-        line = stdout.splitlines()[0] if stdout else ""
-        raw_size, raw_duration = (line.split("|", 1) + ["0"])[:2]
-        
-        size_b = int(raw_size) if raw_size.isdigit() else 0
-        duration_s = int(float(raw_duration)) if raw_duration else 0
-        
+        raw_size = metadata.get("filesize_approx") or metadata.get("filesize") or 0
+        raw_duration = metadata.get("duration") or 0
+        size_b = int(raw_size) if raw_size is not None else 0
+        duration_s = int(float(raw_duration)) if raw_duration is not None else 0
         return size_b / (1024 * 1024), max(0, duration_s)
     except Exception:
         return 0.0, 0
@@ -170,8 +211,8 @@ class DownloadWorker(QObject):
         if not ytdlp:
             self.error.emit("yt-dlp executable not found!")
             return
-        
-        ffmpeg = find_tool_exe("ffmpeg.exe")
+
+        ffmpeg = find_ffmpeg_exe()
         if not ffmpeg:
             self.error.emit("ffmpeg executable not found!")
             return

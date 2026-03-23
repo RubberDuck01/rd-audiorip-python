@@ -419,3 +419,4 @@ FodyWeavers.xsd
 
 tools/*
 source/tools/yt-dlp.exe
+source/tools/ffmpeg.exe
