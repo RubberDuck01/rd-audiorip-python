@@ -6,7 +6,9 @@ from PyQt6.QtCore import QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtWidgets import (
     QFileDialog,
+    QFormLayout,
     QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -35,11 +37,10 @@ class MainWindow(QMainWindow):
         self.config = config
         self.stats = stats
         self.setWindowTitle("Rubber Duck's AudioRip")
-        self.resize(860, 620)
+        self.resize(720, 500)
 
         self._build_menu()
         self._build_ui()
-        self.apply_styles()
 
     def _build_menu(self) -> None:
         menubar = self.menuBar()
@@ -67,180 +68,103 @@ class MainWindow(QMainWindow):
 
     def _build_ui(self) -> None:
         root = QWidget(self)
-        root.setObjectName("root")
-        self.layout = QVBoxLayout(root)
-        self.layout.setContentsMargins(24, 22, 24, 22)
-        self.layout.setSpacing(16)
+        layout = QVBoxLayout(root)
+        layout.setContentsMargins(8, 6, 8, 8)
+        layout.setSpacing(6)
 
-        hero_card = QFrame()
-        hero_card.setObjectName("heroCard")
-        hero_layout = QVBoxLayout(hero_card)
-        hero_layout.setContentsMargins(22, 20, 22, 20)
-        hero_layout.setSpacing(10)
-
-        eyebrow = QLabel("PORTABLE AUDIO WORKFLOW")
-        eyebrow.setObjectName("eyebrow")
-        hero_layout.addWidget(eyebrow)
-
-        header = QLabel("Dark Aero downloads with a bundled toolchain")
-        header.setObjectName("header")
-        hero_layout.addWidget(header)
-
-        subtitle = QLabel(
-            "Paste a YouTube link, keep your tools inside the app folder, and manage downloads from a glassy, modern workspace."
-        )
-        subtitle.setObjectName("subtitle")
-        subtitle.setWordWrap(True)
-        hero_layout.addWidget(subtitle)
-
-        action_bar = QHBoxLayout()
-        action_bar.setSpacing(10)
-        action_bar.setContentsMargins(0, 6, 0, 0)
+        # Quick-access toolbar
+        toolbar_row = QHBoxLayout()
+        toolbar_row.setSpacing(4)
 
         self.open_folder_btn = QPushButton("Open Folder")
-        self.open_folder_btn.setObjectName("toolbarButton")
-        self.open_folder_btn.setMinimumWidth(136)
         self.open_folder_btn.clicked.connect(self.open_downloads_directory)
-        action_bar.addWidget(self.open_folder_btn)
+        toolbar_row.addWidget(self.open_folder_btn)
 
         self.settings_btn = QPushButton("Settings")
-        self.settings_btn.setObjectName("toolbarButton")
-        self.settings_btn.setMinimumWidth(136)
         self.settings_btn.clicked.connect(self.open_settings)
-        action_bar.addWidget(self.settings_btn)
+        toolbar_row.addWidget(self.settings_btn)
 
         self.stats_btn = QPushButton("Statistics")
-        self.stats_btn.setObjectName("toolbarButton")
-        self.stats_btn.setMinimumWidth(136)
         self.stats_btn.clicked.connect(self.open_stats)
-        action_bar.addWidget(self.stats_btn)
+        toolbar_row.addWidget(self.stats_btn)
 
         self.ytdlp_btn = QPushButton("yt-dlp Manager")
-        self.ytdlp_btn.setObjectName("toolbarButton")
-        self.ytdlp_btn.setMinimumWidth(136)
         self.ytdlp_btn.clicked.connect(self.open_ytdlp_manager)
-        action_bar.addWidget(self.ytdlp_btn)
+        toolbar_row.addWidget(self.ytdlp_btn)
 
         self.ffmpeg_btn = QPushButton("FFmpeg")
-        self.ffmpeg_btn.setObjectName("toolbarButton")
-        self.ffmpeg_btn.setMinimumWidth(136)
         self.ffmpeg_btn.clicked.connect(self.open_ffmpeg_manager)
-        action_bar.addWidget(self.ffmpeg_btn)
+        toolbar_row.addWidget(self.ffmpeg_btn)
 
-        action_bar.addStretch()
-        hero_layout.addLayout(action_bar)
+        toolbar_row.addStretch()
+        layout.addLayout(toolbar_row)
 
-        toolbar_divider = QFrame()
-        toolbar_divider.setObjectName("toolbarDivider")
-        toolbar_divider.setFixedHeight(2)
-        hero_layout.addWidget(toolbar_divider)
-        self.layout.addWidget(hero_card)
+        separator = QFrame()
+        separator.setFrameShape(QFrame.Shape.HLine)
+        separator.setFrameShadow(QFrame.Shadow.Sunken)
+        layout.addWidget(separator)
 
-        input_card = QFrame()
-        input_card.setObjectName("sectionCard")
-        input_layout = QVBoxLayout(input_card)
-        input_layout.setContentsMargins(20, 18, 20, 18)
-        input_layout.setSpacing(12)
-
-        input_title = QLabel("New Download")
-        input_title.setObjectName("sectionTitle")
-        input_layout.addWidget(input_title)
-
-        input_hint = QLabel(
-            "Downloads are audio-only. yt-dlp is treated as bundled with the app so the whole setup stays removable in one folder."
-        )
-        input_hint.setObjectName("sectionHint")
-        input_hint.setWordWrap(True)
-        input_layout.addWidget(input_hint)
-
-        url_label = QLabel("YouTube URL")
-        url_label.setObjectName("fieldLabel")
-        input_layout.addWidget(url_label)
+        # Download group
+        download_group = QGroupBox("New Download")
+        download_form = QFormLayout(download_group)
+        download_form.setContentsMargins(10, 12, 10, 10)
+        download_form.setSpacing(6)
 
         url_row = QHBoxLayout()
-        url_row.setSpacing(10)
+        url_row.setSpacing(6)
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("https://www.youtube.com/watch?v=...")
-        self.url_input.setMinimumHeight(44)
         url_row.addWidget(self.url_input, stretch=1)
-
         self.download_btn = QPushButton("Start Download")
-        self.download_btn.setObjectName("primaryButton")
-        self.download_btn.setFixedWidth(168)
-        self.download_btn.setMinimumHeight(44)
         self.download_btn.clicked.connect(self.on_download_clicked)
         url_row.addWidget(self.download_btn)
-        input_layout.addLayout(url_row)
-
-        output_label = QLabel("Output Directory")
-        output_label.setObjectName("fieldLabel")
-        input_layout.addWidget(output_label)
+        download_form.addRow("YouTube URL:", url_row)
 
         out_row = QHBoxLayout()
-        out_row.setSpacing(10)
+        out_row.setSpacing(6)
         self.output_input = QLineEdit(self.config.downloads_dir)
         self.output_input.setReadOnly(True)
-        self.output_input.setMinimumHeight(44)
         out_row.addWidget(self.output_input, stretch=1)
-
         browse_btn = QPushButton("Choose Folder")
-        browse_btn.setObjectName("glassButton")
-        browse_btn.setFixedWidth(168)
-        browse_btn.setMinimumHeight(44)
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(browse_btn)
-        input_layout.addLayout(out_row)
+        download_form.addRow("Output Directory:", out_row)
 
-        self.layout.addWidget(input_card)
+        layout.addWidget(download_group)
 
-        queue_card = QFrame()
-        queue_card.setObjectName("sectionCard")
-        queue_layout = QVBoxLayout(queue_card)
-        queue_layout.setContentsMargins(20, 18, 20, 18)
-        queue_layout.setSpacing(12)
-
-        queue_header = QHBoxLayout()
-        queue_title = QLabel("Session Queue")
-        queue_title.setObjectName("sectionTitle")
-        queue_header.addWidget(queue_title)
-        queue_header.addStretch()
-
-        clear_btn = QPushButton("Clear")
-        clear_btn.setObjectName("glassButton")
-        clear_btn.clicked.connect(self.clear_queue)
-        queue_header.addWidget(clear_btn)
-        queue_layout.addLayout(queue_header)
-
-        queue_hint = QLabel(
-            "Resolved titles appear here. Locale-aware subprocess decoding preserves Cyrillic and other non-Latin characters."
-        )
-        queue_hint.setObjectName("sectionHint")
-        queue_hint.setWordWrap(True)
-        queue_layout.addWidget(queue_hint)
+        # Queue group
+        queue_group = QGroupBox("Session Queue")
+        queue_layout = QVBoxLayout(queue_group)
+        queue_layout.setContentsMargins(10, 12, 10, 10)
+        queue_layout.setSpacing(6)
 
         self.queue_list = QListWidget()
         queue_layout.addWidget(self.queue_list, stretch=1)
-        self.layout.addWidget(queue_card, stretch=1)
 
-        footer_card = QFrame()
-        footer_card.setObjectName("footerCard")
-        footer_layout = QVBoxLayout(footer_card)
-        footer_layout.setContentsMargins(18, 16, 18, 16)
-        footer_layout.setSpacing(8)
+        clear_row = QHBoxLayout()
+        clear_row.addStretch()
+        clear_btn = QPushButton("Clear Queue")
+        clear_btn.clicked.connect(self.clear_queue)
+        clear_row.addWidget(clear_btn)
+        queue_layout.addLayout(clear_row)
 
-        progress_title = QLabel("Transfer Progress")
-        progress_title.setObjectName("fieldLabel")
-        footer_layout.addWidget(progress_title)
+        layout.addWidget(queue_group, stretch=1)
+
+        # Progress group
+        progress_group = QGroupBox("Transfer Progress")
+        progress_layout = QVBoxLayout(progress_group)
+        progress_layout.setContentsMargins(10, 12, 10, 10)
+        progress_layout.setSpacing(4)
 
         self.progress = QProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
-        footer_layout.addWidget(self.progress)
+        progress_layout.addWidget(self.progress)
 
         self.status_label = QLabel("Ready!")
-        self.status_label.setObjectName("status")
-        footer_layout.addWidget(self.status_label)
-        self.layout.addWidget(footer_card)
+        progress_layout.addWidget(self.status_label)
+
+        layout.addWidget(progress_group)
 
         self.setCentralWidget(root)
 
@@ -315,7 +239,7 @@ class MainWindow(QMainWindow):
         QMessageBox.about(
             self,
             "About RD AudioRip",
-            "RD AudioRip\nPortable YouTube audio extraction with a dark Aero-style interface built in Python and PyQt6.",
+            "RD AudioRip\nPortable YouTube audio extraction built in Python and PyQt6.",
         )
 
     def open_about_qt(self) -> None:
@@ -324,128 +248,3 @@ class MainWindow(QMainWindow):
     def open_stats(self) -> None:
         dialog = StatsDialog(self, self.stats)
         dialog.exec()
-
-    def apply_styles(self) -> None:
-        self.setStyleSheet(
-            """
-            QWidget#root {
-                background: qradialgradient(cx:0.2, cy:0.05, radius:1.2,
-                    fx:0.25, fy:0.1,
-                    stop:0 #183848,
-                    stop:0.18 #0d5a67,
-                    stop:0.42 #1a4a52,
-                    stop:0.76 #0c1a2d,
-                    stop:1 #060b14);
-            }
-            QMainWindow {
-                background: transparent;
-                color: #f2fcff;
-            }
-            QLabel {
-                color: #e4fbff;
-                font-size: 12px;
-            }
-            QLabel#eyebrow {
-                color: #8bd7c7;
-                font-size: 10px;
-                font-weight: 700;
-                letter-spacing: 1px;
-            }
-            QLabel#header {
-                font-size: 24px;
-                font-weight: 700;
-                color: #ffffff;
-            }
-            QLabel#subtitle {
-                color: #a9d5d8;
-                font-size: 13px;
-            }
-            QLabel#sectionTitle {
-                font-size: 18px;
-                font-weight: 700;
-                color: #f6ffff;
-            }
-            QLabel#sectionHint {
-                color: #94bfc7;
-                font-size: 12px;
-            }
-            QLabel#fieldLabel {
-                color: #d4ecef;
-                font-size: 11px;
-                font-weight: 700;
-            }
-            QLabel#status {
-                color: #cbe9de;
-                font-style: italic;
-            }
-            QFrame#heroCard, QFrame#sectionCard, QFrame#footerCard {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                    stop:0 rgba(25, 73, 84, 0.86),
-                    stop:0.38 rgba(16, 45, 63, 0.92),
-                    stop:1 rgba(8, 20, 37, 0.92));
-                border: 1px solid rgba(84, 183, 177, 0.34);
-                border-radius: 18px;
-            }
-            QFrame#toolbarDivider {
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 rgba(79, 197, 168, 0.0),
-                    stop:0.5 rgba(104, 205, 197, 0.75),
-                    stop:1 rgba(79, 197, 168, 0.0));
-                border-radius: 1px;
-            }
-            QLineEdit, QListWidget {
-                background: rgba(3, 14, 28, 0.62);
-                color: #f5ffff;
-                border: 1px solid rgba(88, 183, 177, 0.45);
-                border-radius: 12px;
-                padding: 10px 12px;
-                selection-background-color: rgba(51, 176, 171, 0.35);
-            }
-            QListWidget {
-                outline: none;
-            }
-            QPushButton#toolbarButton, QPushButton#glassButton {
-                color: #eaffff;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(60, 153, 150, 0.34),
-                    stop:1 rgba(17, 54, 79, 0.78));
-                border: 1px solid rgba(90, 188, 182, 0.4);
-            }
-            QPushButton#toolbarButton:hover, QPushButton#glassButton:hover {
-                border: 1px solid rgba(122, 211, 193, 0.7);
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 rgba(81, 181, 176, 0.4),
-                    stop:1 rgba(26, 72, 95, 0.82));
-            }
-            QPushButton#primaryButton {
-                color: #efffff;
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #3ea4a5,
-                    stop:0.45 #2f7b96,
-                    stop:1 #274c7b);
-                border: 1px solid #7dd0c7;
-            }
-            QPushButton#primaryButton:hover {
-                background: qlineargradient(x1:0, y1:0, x2:0, y2:1,
-                    stop:0 #46b0b0,
-                    stop:0.45 #3688a1,
-                    stop:1 #2e5888);
-            }
-            QProgressBar {
-                min-height: 22px;
-                border-radius: 11px;
-                background: rgba(4, 18, 33, 0.78);
-                border: 1px solid rgba(91, 188, 177, 0.42);
-                color: #efffff;
-                text-align: center;
-                font-weight: 700;
-            }
-            QProgressBar::chunk {
-                border-radius: 11px;
-                background: qlineargradient(x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #2f8a89,
-                    stop:0.45 #39a9a3,
-                    stop:1 #4e86bf);
-            }
-            """
-        )
