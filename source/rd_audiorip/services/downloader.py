@@ -11,6 +11,7 @@ from typing import Any
 from PyQt6.QtCore import QObject, pyqtSignal
 
 _PROGRESS_RE = re.compile(r"(\d{1,3}(?:\.\d+)?)%")
+_DESTINATION_RE = re.compile(r"^\[[\w:]+\]\s+Destination:\s+(.+)$")
 YTDLP_EXE = "yt-dlp.exe"
 YTDLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
 FFMPEG_EXE = "ffmpeg.exe"
@@ -196,6 +197,7 @@ class DownloadWorker(QObject):
     progress = pyqtSignal(int)
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
+    output_file = pyqtSignal(str)
     
     def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int) -> None:
         super().__init__()
@@ -265,6 +267,7 @@ class DownloadWorker(QObject):
             return
         
         last_line = ""
+        last_destination = ""
         assert proc.stdout is not None
         for raw_line in proc.stdout:
             line = _decode_output(raw_line).strip()
@@ -272,9 +275,14 @@ class DownloadWorker(QObject):
             match = _PROGRESS_RE.search(line)
             if match:
                 self.progress.emit(int(float(match.group(1))))
-        
+            dest_match = _DESTINATION_RE.match(line)
+            if dest_match:
+                last_destination = dest_match.group(1).strip()
+
         rc = proc.wait()
         if rc == 0:
+            if last_destination:
+                self.output_file.emit(last_destination)
             self.finished.emit("Download completed successfully!")
         else:
             self.error.emit(last_line or f"yt-dlp failed with exit code: {rc}")

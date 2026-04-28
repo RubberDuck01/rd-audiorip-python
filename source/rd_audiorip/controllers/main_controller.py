@@ -33,7 +33,7 @@ class MainController(QObject):
         display_text = info if info else url
         self.window.add_to_queue(display_text)
         
-        self.track_size, self.track_duration = get_video_metrics(url)
+        _, self.track_duration = get_video_metrics(url)
         
         self.window.set_busy(True)
         self.window.set_progress(0)
@@ -52,6 +52,7 @@ class MainController(QObject):
         
         self._thread.started.connect(self.worker.run)
         self.worker.progress.connect(self.window.set_progress)
+        self.worker.output_file.connect(self.on_output_file)
         self.worker.finished.connect(self.on_finished)
         self.worker.error.connect(self.on_error)
         
@@ -61,6 +62,15 @@ class MainController(QObject):
         
         self._thread.start()
     
+    def on_output_file(self, path: str) -> None:
+        p = Path(path)
+        if not p.is_absolute():
+            p = Path(self.worker.output_dir) / p
+        try:
+            self.track_size = p.stat().st_size / (1024 * 1024)
+        except OSError:
+            self.track_size = 0.0
+
     def on_finished(self, message: str) -> None:
         self.stats.add_successful_download(
             size_mb=self.track_size,
