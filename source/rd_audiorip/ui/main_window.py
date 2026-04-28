@@ -7,7 +7,6 @@ from PyQt6.QtGui import QAction, QDesktopServices
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
-    QFrame,
     QGroupBox,
     QHBoxLayout,
     QLabel,
@@ -23,6 +22,7 @@ from PyQt6.QtWidgets import (
 
 from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
+from rd_audiorip.ui.about_dialog import AboutDialog
 from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
@@ -72,37 +72,20 @@ class MainWindow(QMainWindow):
         layout.setContentsMargins(8, 6, 8, 8)
         layout.setSpacing(6)
 
-        # Quick-access toolbar
-        toolbar_row = QHBoxLayout()
-        toolbar_row.setSpacing(4)
-
-        self.open_folder_btn = QPushButton("Open Folder")
-        self.open_folder_btn.clicked.connect(self.open_downloads_directory)
-        toolbar_row.addWidget(self.open_folder_btn)
-
-        self.settings_btn = QPushButton("Settings")
-        self.settings_btn.clicked.connect(self.open_settings)
-        toolbar_row.addWidget(self.settings_btn)
-
-        self.stats_btn = QPushButton("Statistics")
-        self.stats_btn.clicked.connect(self.open_stats)
-        toolbar_row.addWidget(self.stats_btn)
-
-        self.ytdlp_btn = QPushButton("yt-dlp Manager")
-        self.ytdlp_btn.clicked.connect(self.open_ytdlp_manager)
-        toolbar_row.addWidget(self.ytdlp_btn)
-
-        self.ffmpeg_btn = QPushButton("FFmpeg")
-        self.ffmpeg_btn.clicked.connect(self.open_ffmpeg_manager)
-        toolbar_row.addWidget(self.ffmpeg_btn)
-
-        toolbar_row.addStretch()
-        layout.addLayout(toolbar_row)
-
-        separator = QFrame()
-        separator.setFrameShape(QFrame.Shape.HLine)
-        separator.setFrameShadow(QFrame.Shadow.Sunken)
-        layout.addWidget(separator)
+        # App header
+        header_layout = QVBoxLayout()
+        header_layout.setSpacing(1)
+        header_layout.setContentsMargins(0, 0, 0, 8)
+        title_label = QLabel("RD AudioRip")
+        title_font = title_label.font()
+        title_font.setPointSize(title_font.pointSize() + 4)
+        title_font.setBold(True)
+        title_label.setFont(title_font)
+        header_layout.addWidget(title_label)
+        subtitle_label = QLabel("Portable YouTube audio downloader — use the menu bar to access all features.")
+        subtitle_label.setEnabled(False)
+        header_layout.addWidget(subtitle_label)
+        layout.addLayout(header_layout)
 
         # Download group
         download_group = QGroupBox("New Download")
@@ -236,11 +219,7 @@ class MainWindow(QMainWindow):
         webbrowser.open("https://github.com/RubberDuck01/rd-audiorip-python")
 
     def open_about(self) -> None:
-        QMessageBox.about(
-            self,
-            "About RD AudioRip",
-            "RD AudioRip\nPortable YouTube audio extraction built in Python and PyQt6.",
-        )
+        AboutDialog(self).exec()
 
     def open_about_qt(self) -> None:
         QMessageBox.aboutQt(self)

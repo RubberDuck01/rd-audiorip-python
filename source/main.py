@@ -1,4 +1,6 @@
 import sys
+from pathlib import Path
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
@@ -8,6 +10,10 @@ from rd_audiorip.controllers.main_controller import MainController
 def main() -> int:
     app = QApplication(sys.argv)
     app.setApplicationName("Rubber Duck's AudioRip")
+
+    icon_path = Path(__file__).parent / "resources" / "rd_audiorip_logo.png"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
     
     config = Config()
     stats = Stats()
