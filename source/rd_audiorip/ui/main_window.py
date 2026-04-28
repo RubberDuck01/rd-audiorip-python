@@ -27,6 +27,7 @@ from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
 from rd_audiorip.ui.ytdlp_dialog import YtdlpDialog
+from rd_audiorip.version import __version__
 
 
 class MainWindow(QMainWindow):
@@ -166,6 +167,22 @@ class MainWindow(QMainWindow):
         progress_layout.addWidget(self.status_label)
 
         layout.addWidget(progress_group)
+
+        # Footer row
+        footer_row = QHBoxLayout()
+        footer_row.setContentsMargins(2, 0, 2, 0)
+        made_with_label = QLabel("Made with \u2665 by Rubber Duck")
+        made_with_label.setEnabled(False)
+        footer_font = made_with_label.font()
+        footer_font.setPointSize(footer_font.pointSize() - 1)
+        made_with_label.setFont(footer_font)
+        footer_row.addWidget(made_with_label)
+        footer_row.addStretch()
+        version_label = QLabel(f"v{__version__}")
+        version_label.setEnabled(False)
+        version_label.setFont(footer_font)
+        footer_row.addWidget(version_label)
+        layout.addLayout(footer_row)
 
         self.setCentralWidget(root)
 

@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from rd_audiorip.version import __version__
+
 _RESOURCES = Path(__file__).parent.parent.parent / "resources"
 
 _UNLICENSE = (
@@ -75,6 +77,13 @@ class AboutDialog(QDialog):
 
         desc_label = QLabel("Portable YouTube audio downloader\nBuilt with Python and PyQt6.")
         info_layout.addWidget(desc_label)
+
+        version_label = QLabel(f"Version {__version__}")
+        version_font = version_label.font()
+        version_font.setItalic(True)
+        version_label.setFont(version_font)
+        version_label.setEnabled(False)
+        info_layout.addWidget(version_label)
 
         header_row.addLayout(info_layout)
         header_row.addStretch()
