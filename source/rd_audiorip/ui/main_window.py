@@ -2,8 +2,8 @@ import os
 import webbrowser
 from pathlib import Path
 
-from PyQt6.QtCore import QUrl, pyqtSignal
-from PyQt6.QtGui import QAction, QDesktopServices
+from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtGui import QAction, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
     QFileDialog,
     QFormLayout,
@@ -46,16 +46,26 @@ class MainWindow(QMainWindow):
         menubar = self.menuBar()
 
         file_menu = menubar.addMenu("&File")
-        file_menu.addAction(QAction("&Open Downloads Directory", self, triggered=self.open_downloads_directory))
-        file_menu.addAction(QAction("&Settings", self, triggered=self.open_settings))
+        open_action = QAction("&Open Downloads Directory", self, triggered=self.open_downloads_directory)
+        open_action.setShortcut(QKeySequence("Ctrl+E"))
+        file_menu.addAction(open_action)
+        settings_action = QAction("&Settings", self, triggered=self.open_settings)
+        settings_action.setShortcut(QKeySequence("Ctrl+,"))
+        file_menu.addAction(settings_action)
         file_menu.addSeparator()
-        file_menu.addAction(QAction("&Quit", self, triggered=self.close))
+        quit_action = QAction("&Quit", self, triggered=self.close)
+        quit_action.setShortcut(QKeySequence("Ctrl+Q"))
+        file_menu.addAction(quit_action)
 
         edit_menu = menubar.addMenu("&Edit")
-        edit_menu.addAction(QAction("&Clear Queue", self, triggered=self.clear_queue))
+        clear_action = QAction("&Clear Queue", self, triggered=self.clear_queue)
+        clear_action.setShortcut(QKeySequence("Ctrl+Shift+Del"))
+        edit_menu.addAction(clear_action)
 
         view_menu = menubar.addMenu("&View")
-        view_menu.addAction(QAction("&My Statistics", self, triggered=self.open_stats))
+        stats_action = QAction("&My Statistics", self, triggered=self.open_stats)
+        stats_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
+        view_menu.addAction(stats_action)
 
         tools_menu = menubar.addMenu("&Tools")
         tools_menu.addAction(QAction("&Check yt-dlp Updates", self, triggered=self.open_ytdlp_manager))
@@ -74,16 +84,24 @@ class MainWindow(QMainWindow):
 
         # App header
         header_layout = QVBoxLayout()
-        header_layout.setSpacing(1)
+        header_layout.setSpacing(4)
         header_layout.setContentsMargins(0, 0, 0, 8)
-        title_label = QLabel("RD AudioRip")
-        title_font = title_label.font()
-        title_font.setPointSize(title_font.pointSize() + 4)
-        title_font.setBold(True)
-        title_label.setFont(title_font)
-        header_layout.addWidget(title_label)
+        branding_label = QLabel()
+        branding_path = Path(__file__).parent.parent.parent / "resources" / "rd_audiorip_branding.png"
+        if branding_path.exists():
+            pix = QPixmap(str(branding_path))
+            branding_label.setPixmap(pix.scaledToHeight(52, Qt.TransformationMode.SmoothTransformation))
+        else:
+            branding_label.setText("RD AudioRip")
+            font = branding_label.font()
+            font.setPointSize(font.pointSize() + 4)
+            font.setBold(True)
+            branding_label.setFont(font)
+        branding_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        header_layout.addWidget(branding_label)
         subtitle_label = QLabel("Portable YouTube audio downloader — use the menu bar to access all features.")
         subtitle_label.setEnabled(False)
+        subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(subtitle_label)
         layout.addLayout(header_layout)
 
