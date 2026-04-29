@@ -424,3 +424,4 @@ source/tools/ffmpeg.exe
 # custom:
 build/*
 dist/*
+*.spec
