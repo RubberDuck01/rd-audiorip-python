@@ -40,7 +40,7 @@ _UNLICENSE = (
 class AboutDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("About RD AudioRip")
+        self.setWindowTitle("RD AudioRip - About")
         self.setModal(True)
         self.resize(480, 340)
 
@@ -75,10 +75,10 @@ class AboutDialog(QDialog):
         name_label.setFont(name_font)
         info_layout.addWidget(name_label)
 
-        desc_label = QLabel("Portable YouTube audio downloader\nBuilt with Python and PyQt6.")
+        desc_label = QLabel("Powerful audio downloader & converter.\nBuilt with Python and Qt6.")
         info_layout.addWidget(desc_label)
 
-        version_label = QLabel(f"Version {__version__}")
+        version_label = QLabel(f"Version: {__version__}")
         version_font = version_label.font()
         version_font.setItalic(True)
         version_label.setFont(version_font)
@@ -97,7 +97,7 @@ class AboutDialog(QDialog):
 
         # Buttons
         btn_row = QHBoxLayout()
-        github_btn = QPushButton("View Source on GitHub")
+        github_btn = QPushButton("Source Code (GitHub)")
         github_btn.clicked.connect(
             lambda: webbrowser.open("https://github.com/RubberDuck01/rd-audiorip-python")
         )

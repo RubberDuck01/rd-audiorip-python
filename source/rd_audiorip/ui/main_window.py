@@ -69,8 +69,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(stats_action)
 
         tools_menu = menubar.addMenu("&Tools")
-        tools_menu.addAction(QAction("&Check yt-dlp Updates", self, triggered=self.open_ytdlp_manager))
-        tools_menu.addAction(QAction("&Manage FFmpeg", self, triggered=self.open_ffmpeg_manager))
+        tools_menu.addAction(QAction("&yt-dlp settings", self, triggered=self.open_ytdlp_manager))
+        tools_menu.addAction(QAction("&FFmpeg settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
@@ -100,7 +100,7 @@ class MainWindow(QMainWindow):
             branding_label.setFont(font)
         branding_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(branding_label)
-        subtitle_label = QLabel("Portable YouTube audio downloader — use the menu bar to access all features.")
+        subtitle_label = QLabel("Powerful audio downloader & converter — Made with \u2665 by Rubber Duck")
         subtitle_label.setEnabled(False)
         subtitle_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(subtitle_label)
@@ -117,7 +117,7 @@ class MainWindow(QMainWindow):
         self.url_input = QLineEdit()
         self.url_input.setPlaceholderText("https://www.youtube.com/watch?v=...")
         url_row.addWidget(self.url_input, stretch=1)
-        self.download_btn = QPushButton("Start Download")
+        self.download_btn = QPushButton("Download")
         self.download_btn.clicked.connect(self.on_download_clicked)
         url_row.addWidget(self.download_btn)
         download_form.addRow("YouTube URL:", url_row)
@@ -127,15 +127,15 @@ class MainWindow(QMainWindow):
         self.output_input = QLineEdit(self.config.downloads_dir)
         self.output_input.setReadOnly(True)
         out_row.addWidget(self.output_input, stretch=1)
-        browse_btn = QPushButton("Choose Folder")
+        browse_btn = QPushButton("Choose...")
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(browse_btn)
-        download_form.addRow("Output Directory:", out_row)
+        download_form.addRow("Download in:", out_row)
 
         layout.addWidget(download_group)
 
         # Queue group
-        queue_group = QGroupBox("Session Queue")
+        queue_group = QGroupBox("Queue")
         queue_layout = QVBoxLayout(queue_group)
         queue_layout.setContentsMargins(10, 12, 10, 10)
         queue_layout.setSpacing(6)
@@ -153,7 +153,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(queue_group, stretch=1)
 
         # Progress group
-        progress_group = QGroupBox("Transfer Progress")
+        progress_group = QGroupBox("Download Progress")
         progress_layout = QVBoxLayout(progress_group)
         progress_layout.setContentsMargins(10, 12, 10, 10)
         progress_layout.setSpacing(4)
@@ -187,7 +187,7 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(root)
 
     def browse_output(self) -> None:
-        directory = QFileDialog.getExistingDirectory(self, "Select Output Directory", self.output_input.text())
+        directory = QFileDialog.getExistingDirectory(self, "Select Downloads Directory", self.output_input.text())
         if directory:
             self.output_input.setText(directory)
             self.config.set_downloads_dir(directory)
@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
                 os.startfile(str(folder))  # type: ignore[attr-defined]
             else:
                 QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
-            self.set_status("Opened downloads directory.")
+            # self.set_status("Opened downloads directory.")
         except Exception as ex:
             self.set_status(f"Failed to open directory: {ex}")
 

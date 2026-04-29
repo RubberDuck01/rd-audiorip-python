@@ -7,7 +7,7 @@ class StatsDialog(QDialog):
     def __init__(self, parent, stats: Stats) -> None:
         super().__init__(parent)
         self.stats = stats
-        self.setWindowTitle("My Statistics")
+        self.setWindowTitle("RD AudioRip - My Statistics")
         self.resize(400, 280)
         self.setModal(True)
 
@@ -23,7 +23,7 @@ class StatsDialog(QDialog):
         stats_form.addRow("Sessions:", QLabel(str(self.stats.data.get("total_sessions", 0))))
         stats_form.addRow("Tracks downloaded:", QLabel(str(self.stats.data.get("total_files_downloaded", 0))))
         stats_form.addRow("Total size:", QLabel(self.stats.data.get("total_downloads_size_pretty", "0 B")))
-        stats_form.addRow("Listening time:", QLabel(self.stats.data.get("total_downloads_duration_pretty", "00:00")))
+        stats_form.addRow("Downloaded tracks combined duration:", QLabel(self.stats.data.get("total_downloads_duration_pretty", "00:00")))
         layout.addWidget(stats_group)
 
         # Timeline group
@@ -31,7 +31,7 @@ class StatsDialog(QDialog):
         timeline_form = QFormLayout(timeline_group)
         timeline_form.setContentsMargins(10, 12, 10, 10)
         timeline_form.setSpacing(6)
-        timeline_form.addRow("Created:", QLabel(self.format_date(self.stats.data.get("created_date", "N/A"))))
+        timeline_form.addRow("Profile created:", QLabel(self.format_date(self.stats.data.get("created_date", "N/A"))))
         timeline_form.addRow("Last run:", QLabel(self.format_date(self.stats.data.get("last_run_date", "N/A"))))
         layout.addWidget(timeline_group)
 

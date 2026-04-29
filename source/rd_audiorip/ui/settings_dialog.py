@@ -18,7 +18,7 @@ class SettingsDialog(QDialog):
     def __init__(self, parent, config: Config) -> None:
         super().__init__(parent)
         self.config = config
-        self.setWindowTitle("Settings")
+        self.setWindowTitle("RD AudioRip - Settings")
         self.resize(520, 320)
         self.setModal(True)
 
@@ -39,11 +39,11 @@ class SettingsDialog(QDialog):
         browse_btn.clicked.connect(self._browse_dir)
         dir_row.addWidget(self.dir_input, stretch=1)
         dir_row.addWidget(browse_btn)
-        dest_form.addRow("Downloads folder:", dir_row)
+        dest_form.addRow("Downloads directory:", dir_row)
         layout.addWidget(dest_group)
 
-        # Audio Tags group
-        tags_group = QGroupBox("Audio Tags")
+        # Additional Features group
+        tags_group = QGroupBox("Additional Features")
         tags_layout = QVBoxLayout(tags_group)
         tags_layout.setContentsMargins(10, 12, 10, 10)
         tags_layout.setSpacing(4)
@@ -63,7 +63,7 @@ class SettingsDialog(QDialog):
         proc_form.setContentsMargins(10, 12, 10, 10)
         proc_form.setSpacing(6)
 
-        self.auto_update_check = QCheckBox("Auto-update yt-dlp on launch")
+        self.auto_update_check = QCheckBox("Auto-update yt-dlp on launch (buggy, may or may not work as expected!)")
         self.auto_update_check.setChecked(self.config.auto_update)
         proc_form.addRow(self.auto_update_check)
 

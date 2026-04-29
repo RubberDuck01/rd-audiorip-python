@@ -11,7 +11,7 @@ from rd_audiorip.services.downloader import (
 class FfmpegDialog(QDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self.setWindowTitle("FFmpeg Manager")
+        self.setWindowTitle("RD AudioRip - FFmpeg Settings")
         self.setModal(True)
         self.resize(500, 180)
 
@@ -20,24 +20,24 @@ class FfmpegDialog(QDialog):
         layout.setSpacing(8)
 
         # Status group
-        status_group = QGroupBox("Status")
+        status_group = QGroupBox("FFmpeg Status")
         status_form = QFormLayout(status_group)
         status_form.setContentsMargins(10, 12, 10, 10)
         status_form.setSpacing(6)
 
-        status_form.addRow("Target path:", QLabel(str(get_tools_ffmpeg_path())))
+        status_form.addRow("Installed:", self.install_status_value)
+        status_form.addRow("Version:", self.version_value)
+        status_form.addRow("Installed in:", QLabel(str(get_tools_ffmpeg_path())))
         self.install_status_value = QLabel("Checking...")
         self.version_value = QLabel("Checking...")
         self.version_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        status_form.addRow("Installed:", self.install_status_value)
-        status_form.addRow("Version:", self.version_value)
         layout.addWidget(status_group)
 
         # Actions
         action_row = QHBoxLayout()
         action_row.setSpacing(6)
         self.refresh_btn = QPushButton("Refresh")
-        self.install_update_btn = QPushButton("Install / Update FFmpeg")
+        self.install_update_btn = QPushButton("Install / Update")
         close_btn = QPushButton("Close")
         action_row.addWidget(self.refresh_btn)
         action_row.addWidget(self.install_update_btn)
@@ -53,7 +53,7 @@ class FfmpegDialog(QDialog):
 
     def refresh_status(self) -> None:
         installed = get_tools_ffmpeg_path().exists()
-        self.install_status_value.setText("Installed" if installed else "Not installed")
+        self.install_status_value.setText("Installed!" if installed else "Not installed, use the Install / Update button.")
         version = get_ffmpeg_version()
         self.version_value.setText(version if version else "Not installed")
 
@@ -61,7 +61,7 @@ class FfmpegDialog(QDialog):
         ok, message = install_or_update_ffmpeg()
         self.refresh_status()
         if ok:
-            QMessageBox.information(self, "FFmpeg", "FFmpeg install/update completed.")
+            QMessageBox.information(self, "RD AudioRip - FFmpeg Settings", "FFmpeg install/update completed.")
         else:
-            QMessageBox.critical(self, "FFmpeg", message)
+            QMessageBox.critical(self, "RD AudioRip - FFmpeg Settings", message)
 
