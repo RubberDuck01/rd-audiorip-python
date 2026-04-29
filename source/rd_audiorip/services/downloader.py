@@ -11,7 +11,7 @@ from typing import Any
 from PyQt6.QtCore import QObject, pyqtSignal
 
 _PROGRESS_RE = re.compile(r"(\d{1,3}(?:\.\d+)?)%")
-_DESTINATION_RE = re.compile(r"^\[[\w:]+\]\s+Destination:\s+(.+)$")
+_DESTINATION_RE = re.compile(r"^\[ExtractAudio\]\s+Destination:\s+(.+)$")
 YTDLP_EXE = "yt-dlp.exe"
 YTDLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe"
 FFMPEG_EXE = "ffmpeg.exe"
@@ -168,6 +168,30 @@ def install_or_update_ffmpeg() -> tuple[bool, str]:
     except Exception as ex:
         return False, f"Failed to install or update FFmpeg: {ex}"
 
+def get_playlist_info(url: str) -> tuple[bool, str, int]:
+    """Return (is_playlist, playlist_title, track_count) without downloading any video."""
+    ytdlp = find_ytdlp_exe()
+    if not ytdlp:
+        return False, "", 0
+
+    result = _run_tool(
+        [ytdlp, "--flat-playlist", "--dump-single-json", "--no-warnings", url],
+        timeout=20,
+    )
+    if result is None or result.returncode != 0:
+        return False, "", 0
+
+    try:
+        data = json.loads(_decode_output(result.stdout))
+        if data.get("_type") == "playlist":
+            title = str(data.get("title") or data.get("playlist_title") or "Playlist").strip()
+            count = len(data.get("entries") or []) or int(data.get("playlist_count") or 0)
+            return True, title, count
+        return False, "", 0
+    except Exception:
+        return False, "", 0
+
+
 def get_video_info(url: str) -> str | None:
     metadata = get_video_metadata(url)
     if not metadata:
@@ -199,7 +223,7 @@ class DownloadWorker(QObject):
     error = pyqtSignal(str)
     output_file = pyqtSignal(str)
     
-    def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int) -> None:
+    def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int, is_playlist: bool = False) -> None:
         super().__init__()
         self.url = url
         self.output_dir = output_dir
@@ -207,6 +231,7 @@ class DownloadWorker(QObject):
         self.embed_thumbnail = embed_thumbnail
         self.embed_metadata = embed_metadata
         self.flac_compression_level = flac_compression_level
+        self.is_playlist = is_playlist
     
     def run(self) -> None:
         ytdlp = find_ytdlp_exe()
@@ -220,17 +245,25 @@ class DownloadWorker(QObject):
             return
         
         fmt = self.preferred_format if self.preferred_format in {"mp3", "flac"} else "mp3"
-        
+
+        output_template = (
+            "%(playlist_title)s/%(title)s.%(ext)s"
+            if self.is_playlist
+            else "%(title)s.%(ext)s"
+        )
+
         args = [
             ytdlp,
-            "--no-playlist",
             "--newline",
             "-f", "bestaudio",
             "-x",
             "--audio-format", fmt,
-            "--output", "%(title)s.%(ext)s",
+            "--output", output_template,
             "--ffmpeg-location", ffmpeg,
         ]
+
+        if not self.is_playlist:
+            args.append("--no-playlist")
         
         if self.embed_thumbnail:
             args.append("--embed-thumbnail")
@@ -267,7 +300,6 @@ class DownloadWorker(QObject):
             return
         
         last_line = ""
-        last_destination = ""
         assert proc.stdout is not None
         for raw_line in proc.stdout:
             line = _decode_output(raw_line).strip()
@@ -277,12 +309,10 @@ class DownloadWorker(QObject):
                 self.progress.emit(int(float(match.group(1))))
             dest_match = _DESTINATION_RE.match(line)
             if dest_match:
-                last_destination = dest_match.group(1).strip()
+                self.output_file.emit(dest_match.group(1).strip())
 
         rc = proc.wait()
         if rc == 0:
-            if last_destination:
-                self.output_file.emit(last_destination)
             self.finished.emit("Download completed successfully!")
         else:
             self.error.emit(last_line or f"yt-dlp failed with exit code: {rc}")

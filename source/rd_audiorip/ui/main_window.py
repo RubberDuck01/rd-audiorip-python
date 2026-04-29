@@ -29,6 +29,7 @@ from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
 from rd_audiorip.ui.ytdlp_dialog import YtdlpDialog
+from rd_audiorip.resources import get_resources_dir
 from rd_audiorip.version import __version__
 
 
@@ -90,7 +91,7 @@ class MainWindow(QMainWindow):
         header_layout.setSpacing(4)
         header_layout.setContentsMargins(0, 0, 0, 8)
         branding_label = QLabel()
-        branding_path = Path(__file__).parent.parent.parent / "resources" / "rd_audiorip_branding.png"
+        branding_path = get_resources_dir() / "rd_audiorip_branding.png"
         if branding_path.exists():
             pix = QPixmap(str(branding_path))
             branding_label.setPixmap(pix.scaledToHeight(52, Qt.TransformationMode.SmoothTransformation))
@@ -281,6 +282,19 @@ class MainWindow(QMainWindow):
         self.set_progress(100)
         self.set_status(message)
         self.url_input.clear()
+
+    def confirm_playlist(self, title: str, count: str) -> bool:
+        result = QMessageBox.question(
+            self,
+            "Playlist Detected",
+            f"<b>{title}</b><br><br>"
+            f"This URL points to a playlist with <b>{count} tracks</b>.<br>"
+            "All tracks will be downloaded into a subfolder named after the playlist.<br><br>"
+            "Continue?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+            QMessageBox.StandardButton.Yes,
+        )
+        return result == QMessageBox.StandardButton.Yes
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self, self.config)

@@ -1,6 +1,6 @@
 from pathlib import Path
 from PyQt6.QtCore import QObject, QThread
-from rd_audiorip.services.downloader import DownloadWorker, get_video_info, get_video_metrics
+from rd_audiorip.services.downloader import DownloadWorker, get_playlist_info, get_video_info, get_video_metrics
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.main_window import MainWindow
 
@@ -13,6 +13,7 @@ class MainController(QObject):
         self.worker: DownloadWorker | None = None
         self.track_size: float = 0.0
         self.track_duration: int = 0
+        self.is_playlist: bool = False
         
         self.window.download_requested.connect(self.start_download)
     
@@ -29,11 +30,21 @@ class MainController(QObject):
             self.window.set_status("Output directory does not exist!")
             return
 
-        info = get_video_info(url)
-        display_text = info if info else url
-        self.window.add_to_queue(display_text)
-        
-        _, self.track_duration = get_video_metrics(url)
+        # Detect playlist
+        is_playlist, playlist_title, track_count = get_playlist_info(url)
+        if is_playlist:
+            if not self.window.confirm_playlist(playlist_title, track_count):
+                return
+            self.is_playlist = True
+            display_text = f"[Playlist] {playlist_title} ({track_count} tracks)"
+            self.window.add_to_queue(display_text)
+            self.track_duration = 0
+        else:
+            self.is_playlist = False
+            info = get_video_info(url)
+            display_text = info if info else url
+            self.window.add_to_queue(display_text)
+            _, self.track_duration = get_video_metrics(url)
         
         self.window.set_busy(True)
         self.window.set_progress(0)
@@ -46,7 +57,8 @@ class MainController(QObject):
             preferred_format=self.window.config.preferred_format,
             embed_thumbnail=self.window.config.album_art,
             embed_metadata=self.window.config.metadata,
-            flac_compression_level=self.window.config.flac_compression_level
+            flac_compression_level=self.window.config.flac_compression_level,
+            is_playlist=self.is_playlist,
         )
         self.worker.moveToThread(self._thread)
         
@@ -67,23 +79,32 @@ class MainController(QObject):
         if not p.is_absolute():
             p = Path(self.worker.output_dir) / p
         try:
-            self.track_size = p.stat().st_size / (1024 * 1024)
+            size_mb = p.stat().st_size / (1024 * 1024)
         except OSError:
-            self.track_size = 0.0
+            size_mb = 0.0
+
+        if self.is_playlist:
+            # Record each track as it completes
+            self.stats.add_successful_download(size_mb=size_mb, duration_sec=0)
+        else:
+            self.track_size = size_mb
 
     def on_finished(self, message: str) -> None:
-        self.stats.add_successful_download(
-            size_mb=self.track_size,
-            duration_sec=self.track_duration
-        )
+        if not self.is_playlist:
+            self.stats.add_successful_download(
+                size_mb=self.track_size,
+                duration_sec=self.track_duration,
+            )
         self.track_size = 0.0
         self.track_duration = 0
+        self.is_playlist = False
         self.window.on_download_success(message)
         self.window.set_busy(False)
     
     def on_error(self, message: str) -> None:
         self.track_size = 0.0
         self.track_duration = 0
+        self.is_playlist = False
         self.window.set_busy(False)
         self.window.show_download_error(message)
     

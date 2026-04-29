@@ -1,5 +1,4 @@
 import webbrowser
-from pathlib import Path
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
@@ -12,9 +11,10 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
 )
 
+from rd_audiorip.resources import get_resources_dir
 from rd_audiorip.version import __version__
 
-_RESOURCES = Path(__file__).parent.parent.parent / "resources"
+_RESOURCES = get_resources_dir()
 
 _UNLICENSE = (
     "This is free and unencumbered software released into the public domain.\n\n"
