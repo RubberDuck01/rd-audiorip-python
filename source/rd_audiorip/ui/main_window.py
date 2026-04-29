@@ -115,6 +115,15 @@ class MainWindow(QMainWindow):
         download_form.setContentsMargins(10, 12, 10, 10)
         download_form.setSpacing(6)
 
+        self.format_hint_label = QLabel()
+        hint_font = self.format_hint_label.font()
+        hint_font.setItalic(True)
+        hint_font.setPointSize(hint_font.pointSize() - 1)
+        self.format_hint_label.setFont(hint_font)
+        self.format_hint_label.setEnabled(False)
+        self._update_format_hint()
+        download_form.addRow(self.format_hint_label)
+
         url_row = QHBoxLayout()
         url_row.setSpacing(6)
         self.url_input = QLineEdit()
@@ -296,10 +305,19 @@ class MainWindow(QMainWindow):
         )
         return result == QMessageBox.StandardButton.Yes
 
+    def _update_format_hint(self) -> None:
+        fmt = self.config.preferred_format.lower()
+        if fmt == "flac":
+            level = self.config.flac_compression_level
+            self.format_hint_label.setText(f"Will download as FLAC (compression level {level})")
+        else:
+            self.format_hint_label.setText("Will download as MP3 (320 kbps)")
+
     def open_settings(self) -> None:
         dialog = SettingsDialog(self, self.config)
         if dialog.exec():
             self.output_input.setText(self.config.downloads_dir)
+            self._update_format_hint()
             self.set_status("Settings saved!")
 
     def open_ytdlp_manager(self) -> None:

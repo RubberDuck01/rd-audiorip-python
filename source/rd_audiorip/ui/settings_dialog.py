@@ -1,10 +1,12 @@
 from PyQt6.QtWidgets import (
     QCheckBox,
+    QComboBox,
     QDialog,
     QFileDialog,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QPushButton,
     QSpinBox,
@@ -67,10 +69,27 @@ class SettingsDialog(QDialog):
         self.auto_update_check.setChecked(self.config.auto_update)
         proc_form.addRow(self.auto_update_check)
 
+        self.format_combo = QComboBox()
+        self.format_combo.addItems(["MP3", "FLAC"])
+        self.format_combo.setCurrentIndex(1 if self.config.preferred_format.lower() == "flac" else 0)
+        self.format_combo.currentIndexChanged.connect(self._on_format_changed)
+        proc_form.addRow("Audio format:", self.format_combo)
+
         self.flac_spinbox = QSpinBox()
         self.flac_spinbox.setRange(0, 12)
         self.flac_spinbox.setValue(self.config.flac_compression_level)
+        self.flac_spinbox.setEnabled(self.config.preferred_format.lower() == "flac")
+        self.flac_spinbox.valueChanged.connect(self._on_flac_level_changed)
         proc_form.addRow("FLAC compression level:", self.flac_spinbox)
+
+        self.flac_hint_label = QLabel()
+        hint_font = self.flac_hint_label.font()
+        hint_font.setItalic(True)
+        hint_font.setPointSize(hint_font.pointSize() - 1)
+        self.flac_hint_label.setFont(hint_font)
+        self.flac_hint_label.setEnabled(self.config.preferred_format.lower() == "flac")
+        self._on_flac_level_changed(self.flac_spinbox.value())
+        proc_form.addRow("", self.flac_hint_label)
         layout.addWidget(proc_group)
 
         layout.addStretch()
@@ -86,6 +105,26 @@ class SettingsDialog(QDialog):
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
 
+    def _on_format_changed(self, index: int) -> None:
+        is_flac = index == 1
+        self.flac_spinbox.setEnabled(is_flac)
+        self.flac_hint_label.setEnabled(is_flac)
+
+    def _on_flac_level_changed(self, value: int) -> None:
+        if value == 0:
+            hint = "No compression — largest file, fastest encoding"
+        elif value <= 4:
+            hint = "Light compression — good balance of speed and size"
+        elif value <= 7:
+            hint = "Moderate compression"
+        elif value == 8:
+            hint = "Default — recommended for most uses"
+        elif value <= 11:
+            hint = "High compression — slower encoding, smaller file"
+        else:
+            hint = "Maximum compression — smallest file, slowest encoding"
+        self.flac_hint_label.setText(hint)
+
     def _browse_dir(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, "Select Downloads Directory", self.dir_input.text())
         if directory:
@@ -96,6 +135,7 @@ class SettingsDialog(QDialog):
         self.config.set_album_art(self.album_art_check.isChecked())
         self.config.set_metadata(self.metadata_check.isChecked())
         self.config.set_auto_update(self.auto_update_check.isChecked())
+        self.config.set_preferred_format(self.format_combo.currentText().lower())
         self.config.set_flac_compression_level(self.flac_spinbox.value())
         self.accept()
 
