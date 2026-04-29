@@ -17,6 +17,12 @@ YTDLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/
 FFMPEG_EXE = "ffmpeg.exe"
 FFMPEG_DOWNLOAD_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 
+# Suppress the console window that would otherwise flash on Windows when
+# spawning child processes from a --windowed PyInstaller bundle.
+_SUBPROCESS_FLAGS: dict = (
+    {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+)
+
 
 def _decode_output(raw: bytes) -> str:
     candidates = ["utf-8", locale.getpreferredencoding(False), "cp1251", "cp866", "latin-1"]
@@ -67,7 +73,7 @@ def find_ffmpeg_exe() -> str | None:
 
 def _run_tool(command: list[str], timeout: int) -> subprocess.CompletedProcess[bytes] | None:
     try:
-        return subprocess.run(command, capture_output=True, timeout=timeout)
+        return subprocess.run(command, capture_output=True, timeout=timeout, **_SUBPROCESS_FLAGS)
     except Exception:
         return None
 
@@ -145,7 +151,7 @@ def update_ytdlp() -> tuple[bool, str]:
         return False, "yt-dlp is not installed."
 
     try:
-        result = subprocess.run([ytdlp, "-U"], capture_output=True, timeout=60)
+        result = subprocess.run([ytdlp, "-U"], capture_output=True, timeout=60, **_SUBPROCESS_FLAGS)
     except Exception as ex:
         return False, f"Failed to run yt-dlp update: {ex}"
 
@@ -294,6 +300,7 @@ class DownloadWorker(QObject):
                 args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                **_SUBPROCESS_FLAGS,
             )
         except Exception as ex:
             self.error.emit(f"Failed to start yt-dlp: {ex}")

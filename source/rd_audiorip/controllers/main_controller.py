@@ -14,6 +14,8 @@ class MainController(QObject):
         self.track_size: float = 0.0
         self.track_duration: int = 0
         self.is_playlist: bool = False
+        self._output_dir: str = ""
+        self._pending_paths: list[str] = []  # paths emitted by output_file signal
         
         self.window.download_requested.connect(self.start_download)
     
@@ -49,6 +51,8 @@ class MainController(QObject):
         self.window.set_busy(True)
         self.window.set_progress(0)
         self.window.set_status("Starting download...")
+        self._output_dir = output_dir
+        self._pending_paths = []
         
         self._thread = QThread()
         self.worker = DownloadWorker(
@@ -75,34 +79,35 @@ class MainController(QObject):
         self._thread.start()
     
     def on_output_file(self, path: str) -> None:
+        # Just record the path — the file may not be fully written yet.
+        # Actual stat is deferred to on_finished when yt-dlp has exited.
+        self._pending_paths.append(path)
+
+    def _stat_size(self, path: str) -> float:
+        """Return file size in MB, 0.0 on any error."""
         p = Path(path)
         if not p.is_absolute():
-            p = Path(self.worker.output_dir) / p
+            p = Path(self._output_dir) / p
         try:
-            size_mb = p.stat().st_size / (1024 * 1024)
+            return p.stat().st_size / (1024 * 1024)
         except OSError:
-            size_mb = 0.0
-
-        if self.is_playlist:
-            # Record each track as it completes
-            self.stats.add_successful_download(size_mb=size_mb, duration_sec=0)
-        else:
-            self.track_size = size_mb
+            return 0.0
 
     def on_finished(self, message: str) -> None:
-        if not self.is_playlist:
-            self.stats.add_successful_download(
-                size_mb=self.track_size,
-                duration_sec=self.track_duration,
-            )
-        self.track_size = 0.0
+        if self.is_playlist:
+            for path in self._pending_paths:
+                self.stats.add_successful_download(size_mb=self._stat_size(path), duration_sec=0)
+        else:
+            size_mb = self._stat_size(self._pending_paths[0]) if self._pending_paths else 0.0
+            self.stats.add_successful_download(size_mb=size_mb, duration_sec=self.track_duration)
+        self._pending_paths = []
         self.track_duration = 0
         self.is_playlist = False
         self.window.on_download_success(message)
         self.window.set_busy(False)
     
     def on_error(self, message: str) -> None:
-        self.track_size = 0.0
+        self._pending_paths = []
         self.track_duration = 0
         self.is_playlist = False
         self.window.set_busy(False)
