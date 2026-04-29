@@ -25,12 +25,12 @@ class FfmpegDialog(QDialog):
         status_form.setContentsMargins(10, 12, 10, 10)
         status_form.setSpacing(6)
 
-        status_form.addRow("Installed:", self.install_status_value)
-        status_form.addRow("Version:", self.version_value)
-        status_form.addRow("Installed in:", QLabel(str(get_tools_ffmpeg_path())))
         self.install_status_value = QLabel("Checking...")
         self.version_value = QLabel("Checking...")
         self.version_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        status_form.addRow("Installed:", self.install_status_value)
+        status_form.addRow("Version:", self.version_value)
+        status_form.addRow("Installed in:", QLabel(str(get_tools_ffmpeg_path())))
         layout.addWidget(status_group)
 
         # Actions
