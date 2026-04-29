@@ -5,6 +5,7 @@ from pathlib import Path
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
+    QDialog,
     QFileDialog,
     QFormLayout,
     QGroupBox,
@@ -16,6 +17,7 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QProgressBar,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -223,6 +225,54 @@ class MainWindow(QMainWindow):
 
     def set_status(self, text: str) -> None:
         self.status_label.setText(text)
+
+    def show_download_error(self, message: str) -> None:
+        self.set_status("Download failed.")
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Download Error")
+        dlg.setModal(True)
+        dlg.resize(520, 240)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+        info = QLabel("yt-dlp reported the following error:")
+        layout.addWidget(info)
+        text_box = QTextEdit()
+        text_box.setReadOnly(True)
+        text_box.setPlainText(message)
+        layout.addWidget(text_box)
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.setDefault(True)
+        close_btn.clicked.connect(dlg.accept)
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+        dlg.exec()
+
+    def show_download_error(self, message: str) -> None:
+        self.set_status("Download failed.")
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Download Error")
+        dlg.setModal(True)
+        dlg.resize(520, 240)
+        layout = QVBoxLayout(dlg)
+        layout.setContentsMargins(12, 12, 12, 12)
+        layout.setSpacing(8)
+        info = QLabel("yt-dlp reported the following error:")
+        layout.addWidget(info)
+        text_box = QTextEdit()
+        text_box.setReadOnly(True)
+        text_box.setPlainText(message)
+        layout.addWidget(text_box)
+        btn_row = QHBoxLayout()
+        btn_row.addStretch()
+        close_btn = QPushButton("Close")
+        close_btn.setDefault(True)
+        close_btn.clicked.connect(dlg.accept)
+        btn_row.addWidget(close_btn)
+        layout.addLayout(btn_row)
+        dlg.exec()
 
     def add_to_queue(self, display_text: str) -> None:
         self.queue_list.addItem(display_text)

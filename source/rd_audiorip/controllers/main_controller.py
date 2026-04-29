@@ -84,8 +84,8 @@ class MainController(QObject):
     def on_error(self, message: str) -> None:
         self.track_size = 0.0
         self.track_duration = 0
-        self.window.set_status(f"Error: {message}")
         self.window.set_busy(False)
+        self.window.show_download_error(message)
     
     def cleanup(self) -> None:
         self.worker = None
