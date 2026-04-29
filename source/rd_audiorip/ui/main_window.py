@@ -3,7 +3,7 @@ import webbrowser
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
-from PyQt6.QtGui import QAction, QDesktopServices, QKeySequence, QPixmap
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -284,8 +284,28 @@ class MainWindow(QMainWindow):
         layout.addLayout(btn_row)
         dlg.exec()
 
-    def add_to_queue(self, display_text: str) -> None:
+    def add_to_queue(self, display_text: str) -> int:
         self.queue_list.addItem(display_text)
+        return self.queue_list.count() - 1
+
+    def mark_queue_item_done(self, row: int) -> None:
+        item = self.queue_list.item(row)
+        if item is None:
+            return
+        text = item.text()
+        if not text.startswith("\u2713 "):
+            item.setText(f"\u2713 {text}")
+        item.setForeground(QColor("#2e7d32"))
+
+    def update_queue_item_progress(self, row: int, done: int, total_count: int) -> None:
+        item = self.queue_list.item(row)
+        if item is None:
+            return
+        text = item.text()
+        # Replace or append the (X/Y tracks) counter
+        import re as _re
+        text = _re.sub(r"\s*\(\d+/\d+ done\)", "", text)
+        item.setText(f"{text} ({done}/{total_count} done)")
 
     def on_download_success(self, message: str) -> None:
         self.set_progress(100)
@@ -295,10 +315,10 @@ class MainWindow(QMainWindow):
     def confirm_playlist(self, title: str, count: str) -> bool:
         result = QMessageBox.question(
             self,
-            "Playlist Detected",
+            "Playlist Detected!",
             f"<b>{title}</b><br><br>"
-            f"This URL points to a playlist with <b>{count} tracks</b>.<br>"
-            "All tracks will be downloaded into a subfolder named after the playlist.<br><br>"
+            f"The provided URL is a playlist (album) with <b>{count} tracks</b>.<br>"
+            f"All tracks will be downloaded into a subdirectory '{title}'.<br><br>"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
@@ -309,9 +329,9 @@ class MainWindow(QMainWindow):
         fmt = self.config.preferred_format.lower()
         if fmt == "flac":
             level = self.config.flac_compression_level
-            self.format_hint_label.setText(f"Will download as FLAC (compression level {level})")
+            self.format_hint_label.setText(f"Downloading to FLAC (compression level {level})")
         else:
-            self.format_hint_label.setText("Will download as MP3 (320 kbps)")
+            self.format_hint_label.setText("Downloading to MP3 (320 kbps)")
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self, self.config)

@@ -228,6 +228,7 @@ class DownloadWorker(QObject):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
     output_file = pyqtSignal(str)
+    download_size_mb = pyqtSignal(float)  # emitted once after process exits
     
     def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int, is_playlist: bool = False) -> None:
         super().__init__()
@@ -249,8 +250,17 @@ class DownloadWorker(QObject):
         if not ffmpeg:
             self.error.emit("ffmpeg executable not found!")
             return
-        
+
         fmt = self.preferred_format if self.preferred_format in {"mp3", "flac"} else "mp3"
+
+        # Snapshot existing audio files so we can diff after download
+        output_path = Path(self.output_dir)
+        try:
+            before_files: set[str] = {
+                str(f) for f in output_path.rglob(f"*.{fmt}") if f.is_file()
+            }
+        except Exception:
+            before_files = set()
 
         output_template = (
             "%(playlist_title)s/%(title)s.%(ext)s"
@@ -320,6 +330,15 @@ class DownloadWorker(QObject):
 
         rc = proc.wait()
         if rc == 0:
+            # Compute size of newly created audio files (post-exit, all writes are done)
+            total_size_mb = 0.0
+            try:
+                for f in output_path.rglob(f"*.{fmt}"):
+                    if f.is_file() and str(f) not in before_files:
+                        total_size_mb += f.stat().st_size / (1024 * 1024)
+            except Exception:
+                pass
+            self.download_size_mb.emit(total_size_mb)
             self.finished.emit("Download completed successfully!")
         else:
             self.error.emit(last_line or f"yt-dlp failed with exit code: {rc}")

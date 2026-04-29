@@ -15,7 +15,10 @@ class MainController(QObject):
         self.track_duration: int = 0
         self.is_playlist: bool = False
         self._output_dir: str = ""
-        self._pending_paths: list[str] = []  # paths emitted by output_file signal
+        self._pending_paths: list[str] = []  # used only for playlist progress counter
+        self._download_size_mb: float = 0.0
+        self._current_queue_row: int = -1
+        self._playlist_total: int = 0
         
         self.window.download_requested.connect(self.start_download)
     
@@ -38,21 +41,24 @@ class MainController(QObject):
             if not self.window.confirm_playlist(playlist_title, track_count):
                 return
             self.is_playlist = True
+            self._playlist_total = track_count
             display_text = f"[Playlist] {playlist_title} ({track_count} tracks)"
-            self.window.add_to_queue(display_text)
+            self._current_queue_row = self.window.add_to_queue(display_text)
             self.track_duration = 0
         else:
             self.is_playlist = False
+            self._playlist_total = 0
             info = get_video_info(url)
             display_text = info if info else url
-            self.window.add_to_queue(display_text)
+            self._current_queue_row = self.window.add_to_queue(display_text)
             _, self.track_duration = get_video_metrics(url)
         
         self.window.set_busy(True)
         self.window.set_progress(0)
-        self.window.set_status("Starting download...")
+        self.window.set_status("Now downloading...")
         self._output_dir = output_dir
         self._pending_paths = []
+        self._download_size_mb = 0.0
         
         self._thread = QThread()
         self.worker = DownloadWorker(
@@ -69,6 +75,7 @@ class MainController(QObject):
         self._thread.started.connect(self.worker.run)
         self.worker.progress.connect(self.window.set_progress)
         self.worker.output_file.connect(self.on_output_file)
+        self.worker.download_size_mb.connect(self.on_download_size)
         self.worker.finished.connect(self.on_finished)
         self.worker.error.connect(self.on_error)
         
@@ -79,37 +86,36 @@ class MainController(QObject):
         self._thread.start()
     
     def on_output_file(self, path: str) -> None:
-        # Just record the path — the file may not be fully written yet.
-        # Actual stat is deferred to on_finished when yt-dlp has exited.
+        # Track count for playlist progress label — not used for sizing.
         self._pending_paths.append(path)
+        if self.is_playlist:
+            self.window.update_queue_item_progress(
+                self._current_queue_row, len(self._pending_paths), self._playlist_total
+            )
 
-    def _stat_size(self, path: str) -> float:
-        """Return file size in MB, 0.0 on any error."""
-        p = Path(path)
-        if not p.is_absolute():
-            p = Path(self._output_dir) / p
-        try:
-            return p.stat().st_size / (1024 * 1024)
-        except OSError:
-            return 0.0
+    def on_download_size(self, size_mb: float) -> None:
+        self._download_size_mb = size_mb
 
     def on_finished(self, message: str) -> None:
-        if self.is_playlist:
-            for path in self._pending_paths:
-                self.stats.add_successful_download(size_mb=self._stat_size(path), duration_sec=0)
-        else:
-            size_mb = self._stat_size(self._pending_paths[0]) if self._pending_paths else 0.0
-            self.stats.add_successful_download(size_mb=size_mb, duration_sec=self.track_duration)
+        self.stats.add_successful_download(
+            size_mb=self._download_size_mb,
+            duration_sec=self.track_duration,
+        )
         self._pending_paths = []
+        self._download_size_mb = 0.0
         self.track_duration = 0
         self.is_playlist = False
+        self._playlist_total = 0
+        self.window.mark_queue_item_done(self._current_queue_row)
         self.window.on_download_success(message)
         self.window.set_busy(False)
     
     def on_error(self, message: str) -> None:
         self._pending_paths = []
+        self._download_size_mb = 0.0
         self.track_duration = 0
         self.is_playlist = False
+        self._playlist_total = 0
         self.window.set_busy(False)
         self.window.show_download_error(message)
     
