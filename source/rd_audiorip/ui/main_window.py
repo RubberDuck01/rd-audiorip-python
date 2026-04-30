@@ -190,7 +190,7 @@ class MainWindow(QMainWindow):
         made_with_label.setFont(footer_font)
         footer_row.addWidget(made_with_label)
         footer_row.addStretch()
-        version_label = QLabel(f"v{__version__}")
+        version_label = QLabel(f"Version {__version__}")
         version_label.setEnabled(False)
         version_label.setFont(footer_font)
         footer_row.addWidget(version_label)
