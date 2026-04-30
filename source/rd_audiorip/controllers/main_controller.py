@@ -1,8 +1,19 @@
 from pathlib import Path
-from PyQt6.QtCore import QObject, QThread
-from rd_audiorip.services.downloader import DownloadWorker, get_playlist_info, get_video_info, get_video_metrics
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
+from rd_audiorip.services.downloader import DownloadWorker, find_ytdlp_exe, get_playlist_info, get_video_info, get_video_metrics, update_ytdlp
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.main_window import MainWindow
+
+
+class AutoUpdateWorker(QObject):
+    finished = pyqtSignal(str)  # status message for the window
+
+    def run(self) -> None:
+        ok, _ = update_ytdlp()
+        if ok:
+            self.finished.emit("yt-dlp is up to date, AudioRip ready!")
+        else:
+            self.finished.emit("yt-dlp auto-update failed. Go to Tools → yt-dlp Settings to update manually.")
 
 class MainController(QObject):
     def __init__(self, window: MainWindow, stats: Stats) -> None:
@@ -19,8 +30,27 @@ class MainController(QObject):
         self._download_size_mb: float = 0.0
         self._current_queue_row: int = -1
         self._playlist_total: int = 0
-        
+
         self.window.download_requested.connect(self.start_download)
+        self._maybe_auto_update_ytdlp()
+
+    def _maybe_auto_update_ytdlp(self) -> None:
+        if not self.window.config.auto_update:
+            return
+        if not find_ytdlp_exe():
+            self.window.set_status(
+                "yt-dlp is not installed. Go to Tools → yt-dlp Settings to install it first."
+            )
+            return
+        self.window.set_status("Checking for yt-dlp updates...")
+        self._au_thread = QThread()
+        self._au_worker = AutoUpdateWorker()
+        self._au_worker.moveToThread(self._au_thread)
+        self._au_thread.started.connect(self._au_worker.run)
+        self._au_worker.finished.connect(self.window.set_status)
+        self._au_worker.finished.connect(self._au_thread.quit)
+        self._au_thread.finished.connect(self._au_thread.deleteLater)
+        self._au_thread.start()
     
     def start_download(self, url: str, output_dir: str) -> None:
         if self._thread is not None:

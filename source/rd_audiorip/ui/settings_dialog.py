@@ -65,7 +65,7 @@ class SettingsDialog(QDialog):
         proc_form.setContentsMargins(10, 12, 10, 10)
         proc_form.setSpacing(6)
 
-        self.auto_update_check = QCheckBox("Auto-update yt-dlp on launch (buggy, may or may not work as expected!)")
+        self.auto_update_check = QCheckBox("Auto-update yt-dlp on launch")
         self.auto_update_check.setChecked(self.config.auto_update)
         proc_form.addRow(self.auto_update_check)
 

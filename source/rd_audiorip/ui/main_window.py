@@ -72,8 +72,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(stats_action)
 
         tools_menu = menubar.addMenu("&Tools")
-        tools_menu.addAction(QAction("&yt-dlp settings", self, triggered=self.open_ytdlp_manager))
-        tools_menu.addAction(QAction("&FFmpeg settings", self, triggered=self.open_ffmpeg_manager))
+        tools_menu.addAction(QAction("&yt-dlp Settings", self, triggered=self.open_ytdlp_manager))
+        tools_menu.addAction(QAction("&FFmpeg Settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
@@ -142,7 +142,7 @@ class MainWindow(QMainWindow):
         browse_btn = QPushButton("Choose...")
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(browse_btn)
-        download_form.addRow("Download in:", out_row)
+        download_form.addRow("Download to:", out_row)
 
         layout.addWidget(download_group)
 
