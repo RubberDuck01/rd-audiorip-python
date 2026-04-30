@@ -425,3 +425,4 @@ source/tools/ffmpeg.exe
 build/*
 dist/*
 *.spec
+resources/open-source-logo.png

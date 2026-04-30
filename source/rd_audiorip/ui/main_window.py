@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.about_dialog import AboutDialog
+from rd_audiorip.ui.donation_dialog import DonationDialog
 from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
@@ -356,7 +357,11 @@ class MainWindow(QMainWindow):
         webbrowser.open("https://github.com/RubberDuck01/rd-audiorip-python")
 
     def open_about(self) -> None:
-        AboutDialog(self).exec()
+        AboutDialog(self, config=self.config).exec()
+
+    def show_donation_popup(self) -> None:
+        if not self.config.i_have_donated:
+            DonationDialog(self).exec()
 
     def open_about_qt(self) -> None:
         QMessageBox.aboutQt(self)

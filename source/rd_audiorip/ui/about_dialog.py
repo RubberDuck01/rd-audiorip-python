@@ -3,14 +3,17 @@ import webbrowser
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QHBoxLayout,
     QLabel,
     QPushButton,
     QTextEdit,
     QVBoxLayout,
+    QWidget,
 )
 
+from rd_audiorip.models.config import Config
 from rd_audiorip.resources import get_resources_dir
 from rd_audiorip.version import __version__
 
@@ -38,8 +41,12 @@ _UNLICENSE = (
 
 
 class AboutDialog(QDialog):
-    def __init__(self, parent=None) -> None:
+    _CLICKS_REQUIRED = 13
+
+    def __init__(self, parent=None, config: Config | None = None) -> None:
         super().__init__(parent)
+        self.config = config
+        self._icon_clicks = 0
         self.setWindowTitle("RD AudioRip - About")
         self.setModal(True)
         self.resize(480, 340)
@@ -53,7 +60,7 @@ class AboutDialog(QDialog):
         header_row.setSpacing(16)
         header_row.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        icon_label = QLabel()
+        self._icon_label = QLabel()
         icon_path = _RESOURCES / "rd_audiorip_logo.png"
         if icon_path.exists():
             pix = QPixmap(str(icon_path)).scaled(
@@ -61,9 +68,11 @@ class AboutDialog(QDialog):
                 Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation,
             )
-            icon_label.setPixmap(pix)
-        icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
-        header_row.addWidget(icon_label)
+            self._icon_label.setPixmap(pix)
+        self._icon_label.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self._icon_label.setCursor(Qt.CursorShape.PointingHandCursor)
+        self._icon_label.mousePressEvent = self._on_icon_clicked
+        header_row.addWidget(self._icon_label)
 
         info_layout = QVBoxLayout()
         info_layout.setSpacing(4)
@@ -95,6 +104,37 @@ class AboutDialog(QDialog):
         license_edit.setPlainText(_UNLICENSE)
         layout.addWidget(license_edit)
 
+        # Hidden donation opt-out section (revealed after 13 icon clicks)
+        self._donation_section = QWidget()
+        don_layout = QVBoxLayout(self._donation_section)
+        don_layout.setContentsMargins(0, 4, 0, 0)
+        don_layout.setSpacing(4)
+
+        don_hint = QLabel(
+            "Be honest and only tick this option if you have actually donated.\n"
+            
+            "It will permanently silence the annoying donation popup after each download.\n\n"
+            
+            "Even if you didn't, clicking the icon a bunch of times to find this and then lying about it is more effort than just donating,"
+            "so please consider supporting the project if you find it useful! ;)"
+        )
+        don_hint_font = don_hint.font()
+        don_hint_font.setItalic(True)
+        don_hint_font.setPointSize(don_hint_font.pointSize() - 1)
+        don_hint.setFont(don_hint_font)
+        don_hint.setEnabled(False)
+        don_hint.setWordWrap(True)
+        don_layout.addWidget(don_hint)
+
+        self._donated_check = QCheckBox("I have donated (and I promise I'm not a liar)")
+        if self.config is not None:
+            self._donated_check.setChecked(self.config.i_have_donated)
+        self._donated_check.toggled.connect(self._on_donated_toggled)
+        don_layout.addWidget(self._donated_check)
+
+        self._donation_section.setVisible(False)
+        layout.addWidget(self._donation_section)
+
         # Buttons
         btn_row = QHBoxLayout()
         github_btn = QPushButton("Source Code (GitHub)")
@@ -108,3 +148,16 @@ class AboutDialog(QDialog):
         close_btn.clicked.connect(self.accept)
         btn_row.addWidget(close_btn)
         layout.addLayout(btn_row)
+
+    def _on_icon_clicked(self, event) -> None:
+        self._icon_clicks += 1
+        remaining = self._CLICKS_REQUIRED - self._icon_clicks
+        if remaining > 0:
+            self._icon_label.setToolTip(f"{remaining} more click{'s' if remaining != 1 else ''}...")
+        else:
+            self._icon_label.setToolTip("")
+            self._donation_section.setVisible(True)
+
+    def _on_donated_toggled(self, checked: bool) -> None:
+        if self.config is not None:
+            self.config.set_i_have_donated(checked)

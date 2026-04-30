@@ -139,6 +139,7 @@ class MainController(QObject):
         self.window.mark_queue_item_done(self._current_queue_row)
         self.window.on_download_success(message)
         self.window.set_busy(False)
+        self.window.show_donation_popup()
     
     def on_error(self, message: str) -> None:
         self._pending_paths = []
