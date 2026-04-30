@@ -3,7 +3,7 @@ import webbrowser
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, QUrl, pyqtSignal
-from PyQt6.QtGui import QAction, QDesktopServices, QKeySequence, QPixmap
+from PyQt6.QtGui import QAction, QColor, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QFileDialog,
@@ -25,6 +25,7 @@ from PyQt6.QtWidgets import (
 from rd_audiorip.models.config import Config
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.about_dialog import AboutDialog
+from rd_audiorip.ui.donation_dialog import DonationDialog
 from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
@@ -72,8 +73,8 @@ class MainWindow(QMainWindow):
         view_menu.addAction(stats_action)
 
         tools_menu = menubar.addMenu("&Tools")
-        tools_menu.addAction(QAction("&yt-dlp settings", self, triggered=self.open_ytdlp_manager))
-        tools_menu.addAction(QAction("&FFmpeg settings", self, triggered=self.open_ffmpeg_manager))
+        tools_menu.addAction(QAction("&yt-dlp Settings", self, triggered=self.open_ytdlp_manager))
+        tools_menu.addAction(QAction("&FFmpeg Settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
@@ -142,7 +143,7 @@ class MainWindow(QMainWindow):
         browse_btn = QPushButton("Choose...")
         browse_btn.clicked.connect(self.browse_output)
         out_row.addWidget(browse_btn)
-        download_form.addRow("Download in:", out_row)
+        download_form.addRow("Download to:", out_row)
 
         layout.addWidget(download_group)
 
@@ -190,7 +191,7 @@ class MainWindow(QMainWindow):
         made_with_label.setFont(footer_font)
         footer_row.addWidget(made_with_label)
         footer_row.addStretch()
-        version_label = QLabel(f"v{__version__}")
+        version_label = QLabel(f"Version {__version__}")
         version_label.setEnabled(False)
         version_label.setFont(footer_font)
         footer_row.addWidget(version_label)
@@ -284,8 +285,28 @@ class MainWindow(QMainWindow):
         layout.addLayout(btn_row)
         dlg.exec()
 
-    def add_to_queue(self, display_text: str) -> None:
+    def add_to_queue(self, display_text: str) -> int:
         self.queue_list.addItem(display_text)
+        return self.queue_list.count() - 1
+
+    def mark_queue_item_done(self, row: int) -> None:
+        item = self.queue_list.item(row)
+        if item is None:
+            return
+        text = item.text()
+        if not text.startswith("\u2713 "):
+            item.setText(f"\u2713 {text}")
+        item.setForeground(QColor("#2e7d32"))
+
+    def update_queue_item_progress(self, row: int, done: int, total_count: int) -> None:
+        item = self.queue_list.item(row)
+        if item is None:
+            return
+        text = item.text()
+        # Replace or append the (X/Y tracks) counter
+        import re as _re
+        text = _re.sub(r"\s*\(\d+/\d+ done\)", "", text)
+        item.setText(f"{text} ({done}/{total_count} done)")
 
     def on_download_success(self, message: str) -> None:
         self.set_progress(100)
@@ -295,10 +316,10 @@ class MainWindow(QMainWindow):
     def confirm_playlist(self, title: str, count: str) -> bool:
         result = QMessageBox.question(
             self,
-            "Playlist Detected",
+            "Playlist Detected!",
             f"<b>{title}</b><br><br>"
-            f"This URL points to a playlist with <b>{count} tracks</b>.<br>"
-            "All tracks will be downloaded into a subfolder named after the playlist.<br><br>"
+            f"The provided URL is a playlist (album) with <b>{count} tracks</b>.<br>"
+            f"All tracks will be downloaded into a subdirectory '{title}'.<br><br>"
             "Continue?",
             QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
             QMessageBox.StandardButton.Yes,
@@ -309,9 +330,9 @@ class MainWindow(QMainWindow):
         fmt = self.config.preferred_format.lower()
         if fmt == "flac":
             level = self.config.flac_compression_level
-            self.format_hint_label.setText(f"Will download as FLAC (compression level {level})")
+            self.format_hint_label.setText(f"Downloading to FLAC (compression level {level})")
         else:
-            self.format_hint_label.setText("Will download as MP3 (320 kbps)")
+            self.format_hint_label.setText("Downloading to MP3 (320 kbps)")
 
     def open_settings(self) -> None:
         dialog = SettingsDialog(self, self.config)
@@ -336,7 +357,11 @@ class MainWindow(QMainWindow):
         webbrowser.open("https://github.com/RubberDuck01/rd-audiorip-python")
 
     def open_about(self) -> None:
-        AboutDialog(self).exec()
+        AboutDialog(self, config=self.config).exec()
+
+    def show_donation_popup(self) -> None:
+        if not self.config.i_have_donated:
+            DonationDialog(self).exec()
 
     def open_about_qt(self) -> None:
         QMessageBox.aboutQt(self)

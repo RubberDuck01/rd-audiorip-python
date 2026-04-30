@@ -14,12 +14,8 @@ RESOURCES = SOURCE / "resources"
 ICON = RESOURCES / "rd_audiorip_logo.ico"
 ENTRY = SOURCE / "main.py"
 
-PYINSTALLER = Path(sys.executable).parent / "pyinstaller.exe"
-if not PYINSTALLER.exists():
-    PYINSTALLER = Path(sys.executable).parent / "pyinstaller"
-
 args = [
-    str(PYINSTALLER),
+    sys.executable, "-m", "PyInstaller",
     "--onefile",
     "--windowed",
     f"--icon={ICON}",

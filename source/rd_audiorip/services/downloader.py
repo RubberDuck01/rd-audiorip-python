@@ -17,6 +17,12 @@ YTDLP_DOWNLOAD_URL = "https://github.com/yt-dlp/yt-dlp/releases/latest/download/
 FFMPEG_EXE = "ffmpeg.exe"
 FFMPEG_DOWNLOAD_URL = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
 
+# Suppress the console window that would otherwise flash on Windows when
+# spawning child processes from a --windowed PyInstaller bundle.
+_SUBPROCESS_FLAGS: dict = (
+    {"creationflags": subprocess.CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+)
+
 
 def _decode_output(raw: bytes) -> str:
     candidates = ["utf-8", locale.getpreferredencoding(False), "cp1251", "cp866", "latin-1"]
@@ -67,7 +73,7 @@ def find_ffmpeg_exe() -> str | None:
 
 def _run_tool(command: list[str], timeout: int) -> subprocess.CompletedProcess[bytes] | None:
     try:
-        return subprocess.run(command, capture_output=True, timeout=timeout)
+        return subprocess.run(command, capture_output=True, timeout=timeout, **_SUBPROCESS_FLAGS)
     except Exception:
         return None
 
@@ -145,7 +151,7 @@ def update_ytdlp() -> tuple[bool, str]:
         return False, "yt-dlp is not installed."
 
     try:
-        result = subprocess.run([ytdlp, "-U"], capture_output=True, timeout=60)
+        result = subprocess.run([ytdlp, "-U"], capture_output=True, timeout=60, **_SUBPROCESS_FLAGS)
     except Exception as ex:
         return False, f"Failed to run yt-dlp update: {ex}"
 
@@ -222,6 +228,7 @@ class DownloadWorker(QObject):
     finished = pyqtSignal(str)
     error = pyqtSignal(str)
     output_file = pyqtSignal(str)
+    download_size_mb = pyqtSignal(float)  # emitted once after process exits
     
     def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int, is_playlist: bool = False) -> None:
         super().__init__()
@@ -243,8 +250,17 @@ class DownloadWorker(QObject):
         if not ffmpeg:
             self.error.emit("ffmpeg executable not found!")
             return
-        
+
         fmt = self.preferred_format if self.preferred_format in {"mp3", "flac"} else "mp3"
+
+        # Snapshot existing audio files so we can diff after download
+        output_path = Path(self.output_dir)
+        try:
+            before_files: set[str] = {
+                str(f) for f in output_path.rglob(f"*.{fmt}") if f.is_file()
+            }
+        except Exception:
+            before_files = set()
 
         output_template = (
             "%(playlist_title)s/%(title)s.%(ext)s"
@@ -294,6 +310,7 @@ class DownloadWorker(QObject):
                 args,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                **_SUBPROCESS_FLAGS,
             )
         except Exception as ex:
             self.error.emit(f"Failed to start yt-dlp: {ex}")
@@ -313,6 +330,15 @@ class DownloadWorker(QObject):
 
         rc = proc.wait()
         if rc == 0:
+            # Compute size of newly created audio files (post-exit, all writes are done)
+            total_size_mb = 0.0
+            try:
+                for f in output_path.rglob(f"*.{fmt}"):
+                    if f.is_file() and str(f) not in before_files:
+                        total_size_mb += f.stat().st_size / (1024 * 1024)
+            except Exception:
+                pass
+            self.download_size_mb.emit(total_size_mb)
             self.finished.emit("Download completed successfully!")
         else:
             self.error.emit(last_line or f"yt-dlp failed with exit code: {rc}")
