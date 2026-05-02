@@ -99,6 +99,8 @@ class MainController(QObject):
             embed_metadata=self.window.config.metadata,
             flac_compression_level=self.window.config.flac_compression_level,
             is_playlist=self.is_playlist,
+            cookies_enabled=self.window.config.cookies_enabled,
+            cookies_path=self.window.config.cookies_path,
         )
         self.worker.moveToThread(self._thread)
         
