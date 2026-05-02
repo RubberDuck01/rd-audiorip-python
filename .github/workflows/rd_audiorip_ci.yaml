@@ -54,4 +54,3 @@ jobs:
           tag_name: v${{ steps.version.outputs.value }}
           name: RD AudioRip v${{ steps.version.outputs.value }}
           files: dist/RD-AudioRip-v${{ steps.version.outputs.value }}.7z
-          generate_release_notes: true
