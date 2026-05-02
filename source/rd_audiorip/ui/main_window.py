@@ -2,9 +2,10 @@ import os
 import webbrowser
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtCore import Qt, QEvent, QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QFileDialog,
     QFormLayout,
@@ -67,6 +68,12 @@ class MainWindow(QMainWindow):
         clear_action = QAction("&Clear Queue", self, triggered=self.clear_queue)
         clear_action.setShortcut(QKeySequence("Ctrl+Shift+Del"))
         edit_menu.addAction(clear_action)
+        edit_menu.addSeparator()
+        self._clipboard_paste_action = QAction("&Auto-paste URL from Clipboard", self)
+        self._clipboard_paste_action.setCheckable(True)
+        self._clipboard_paste_action.setChecked(self.config.clipboard_paste_enabled)
+        self._clipboard_paste_action.toggled.connect(self._on_clipboard_paste_toggled)
+        edit_menu.addAction(self._clipboard_paste_action)
 
         view_menu = menubar.addMenu("&View")
         stats_action = QAction("&My Statistics", self, triggered=self.open_stats)
@@ -78,7 +85,7 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(QAction("&FFmpeg Settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
-        help_menu.addAction(QAction("&Check for Update", self, triggered=self.check_for_update))
+        help_menu.addAction(QAction("&Check for Updates", self, triggered=self.check_for_update))
         help_menu.addSeparator()
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
         help_menu.addAction(QAction("&About RD AudioRip", self, triggered=self.open_about))
@@ -201,6 +208,18 @@ class MainWindow(QMainWindow):
         layout.addLayout(footer_row)
 
         self.setCentralWidget(root)
+
+    def changeEvent(self, event: QEvent) -> None:
+        if event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
+            if self.config.clipboard_paste_enabled and not self.url_input.text().strip():
+                text = QApplication.clipboard().text().strip()
+                if text.startswith("http"):
+                    self.url_input.setText(text)
+                    self.set_status("URL pasted from clipboard.")
+        super().changeEvent(event)
+
+    def _on_clipboard_paste_toggled(self, checked: bool) -> None:
+        self.config.set_clipboard_paste_enabled(checked)
 
     def browse_output(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, "Select Downloads Directory", self.output_input.text())

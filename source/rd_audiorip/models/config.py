@@ -46,7 +46,8 @@ class Config:
                 "metadata": True,
                 "flac_compression_level": 8,
                 "cookies_enabled": False,
-                "cookies_path": ""
+                "cookies_path": "",
+                "clipboard_paste_enabled": True
             },
             "other": {
                 "i_have_donated": False
@@ -87,6 +88,10 @@ class Config:
         return str(self.data["settings"].get("cookies_path", ""))
 
     @property
+    def clipboard_paste_enabled(self) -> bool:
+        return bool(self.data["settings"].get("clipboard_paste_enabled", True))
+
+    @property
     def i_have_donated(self) -> bool:
         return self.data["other"]["i_have_donated"]
     
@@ -121,6 +126,10 @@ class Config:
 
     def set_cookies_path(self, path: str) -> None:
         self.data["settings"]["cookies_path"] = path
+        self.save()
+
+    def set_clipboard_paste_enabled(self, value: bool) -> None:
+        self.data["settings"]["clipboard_paste_enabled"] = value
         self.save()
 
     def set_i_have_donated(self, value: bool) -> None:
