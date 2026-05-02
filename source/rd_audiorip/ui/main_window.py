@@ -29,6 +29,7 @@ from rd_audiorip.ui.donation_dialog import DonationDialog
 from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
+from rd_audiorip.ui.update_dialog import UpdateAvailableDialog
 from rd_audiorip.ui.ytdlp_dialog import YtdlpDialog
 from rd_audiorip.resources import get_resources_dir
 from rd_audiorip.version import __version__
@@ -58,7 +59,7 @@ class MainWindow(QMainWindow):
         settings_action.setShortcut(QKeySequence("Ctrl+,"))
         file_menu.addAction(settings_action)
         file_menu.addSeparator()
-        quit_action = QAction("&Quit", self, triggered=self.close)
+        quit_action = QAction("&Exit", self, triggered=self.close)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
         file_menu.addAction(quit_action)
 
@@ -77,6 +78,8 @@ class MainWindow(QMainWindow):
         tools_menu.addAction(QAction("&FFmpeg Settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
+        help_menu.addAction(QAction("&Check for Update", self, triggered=self.check_for_update))
+        help_menu.addSeparator()
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
         help_menu.addAction(QAction("&About RD AudioRip", self, triggered=self.open_about))
         help_menu.addAction(QAction("&About Qt", self, triggered=self.open_about_qt))
@@ -362,6 +365,15 @@ class MainWindow(QMainWindow):
     def show_donation_popup(self) -> None:
         if not self.config.i_have_donated:
             DonationDialog(self).exec()
+
+    def show_update_available(self, latest_version: str) -> None:
+        UpdateAvailableDialog(self, latest_version=latest_version).exec()
+
+    def show_up_to_date(self) -> None:
+        QMessageBox.information(self, "RD AudioRip", "You're already on the latest version!")
+
+    def check_for_update(self) -> None:
+        self.controller._check_for_app_update(manual=True)
 
     def open_about_qt(self) -> None:
         QMessageBox.aboutQt(self)
