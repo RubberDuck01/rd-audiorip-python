@@ -79,6 +79,11 @@ class MainWindow(QMainWindow):
         stats_action = QAction("&My Statistics", self, triggered=self.open_stats)
         stats_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
         view_menu.addAction(stats_action)
+        view_menu.addSeparator()
+        self._always_on_top_action = QAction("&Always on Top", self)
+        self._always_on_top_action.setCheckable(True)
+        self._always_on_top_action.toggled.connect(self._on_always_on_top_toggled)
+        view_menu.addAction(self._always_on_top_action)
 
         tools_menu = menubar.addMenu("&Tools")
         tools_menu.addAction(QAction("&yt-dlp Settings", self, triggered=self.open_ytdlp_manager))
@@ -220,6 +225,15 @@ class MainWindow(QMainWindow):
 
     def _on_clipboard_paste_toggled(self, checked: bool) -> None:
         self.config.set_clipboard_paste_enabled(checked)
+
+    def _on_always_on_top_toggled(self, checked: bool) -> None:
+        flags = self.windowFlags()
+        if checked:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        else:
+            flags &= ~Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show()
 
     def browse_output(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, "Select Downloads Directory", self.output_input.text())
