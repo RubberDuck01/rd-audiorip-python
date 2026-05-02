@@ -44,21 +44,6 @@ class SettingsDialog(QDialog):
         dest_form.addRow("Downloads directory:", dir_row)
         layout.addWidget(dest_group)
 
-        # Additional Features group
-        tags_group = QGroupBox("Additional Features")
-        tags_layout = QVBoxLayout(tags_group)
-        tags_layout.setContentsMargins(10, 12, 10, 10)
-        tags_layout.setSpacing(4)
-
-        self.album_art_check = QCheckBox("Embed album art (thumbnail as cover art)")
-        self.album_art_check.setChecked(self.config.album_art)
-        tags_layout.addWidget(self.album_art_check)
-
-        self.metadata_check = QCheckBox("Embed metadata (title, uploader, tags)")
-        self.metadata_check.setChecked(self.config.metadata)
-        tags_layout.addWidget(self.metadata_check)
-        layout.addWidget(tags_group)
-
         # Processing group
         proc_group = QGroupBox("Processing")
         proc_form = QFormLayout(proc_group)
@@ -92,7 +77,54 @@ class SettingsDialog(QDialog):
         proc_form.addRow("", self.flac_hint_label)
         layout.addWidget(proc_group)
 
-        layout.addStretch()
+        # Additional Features group
+        tags_group = QGroupBox("Additional Features")
+        tags_layout = QVBoxLayout(tags_group)
+        tags_layout.setContentsMargins(10, 12, 10, 10)
+        tags_layout.setSpacing(4)
+
+        self.album_art_check = QCheckBox("Embed album art (thumbnail as cover art)")
+        self.album_art_check.setChecked(self.config.album_art)
+        tags_layout.addWidget(self.album_art_check)
+
+        self.metadata_check = QCheckBox("Embed metadata (title, uploader, tags)")
+        self.metadata_check.setChecked(self.config.metadata)
+        tags_layout.addWidget(self.metadata_check)
+        layout.addWidget(tags_group)
+        
+        # Cookies group
+        cookies_group = QGroupBox("Bot Detection Bypass (Cookies)")
+        cookies_form = QFormLayout(cookies_group)
+        cookies_form.setContentsMargins(10, 12, 10, 10)
+        cookies_form.setSpacing(6)
+
+        self.cookies_check = QCheckBox("Use cookies")
+        self.cookies_check.setChecked(self.config.cookies_enabled)
+        self.cookies_check.toggled.connect(self._on_cookies_toggled)
+        cookies_form.addRow(self.cookies_check)
+
+        cookies_path_row = QHBoxLayout()
+        cookies_path_row.setSpacing(6)
+        self.cookies_input = QLineEdit(self.config.cookies_path)
+        self.cookies_input.setPlaceholderText("Path to cookies.txt...")
+        self.cookies_input.setEnabled(self.config.cookies_enabled)
+        cookies_browse_btn = QPushButton("Browse...")
+        cookies_browse_btn.setEnabled(self.config.cookies_enabled)
+        cookies_browse_btn.clicked.connect(self._browse_cookies)
+        self.cookies_browse_btn = cookies_browse_btn
+        cookies_path_row.addWidget(self.cookies_input, stretch=1)
+        cookies_path_row.addWidget(cookies_browse_btn)
+        cookies_form.addRow("Cookies file:", cookies_path_row)
+
+        cookies_hint = QLabel("Export cookies from your browser using a browser extension (e.g. \"cookies.txt\" for Firefox or \"Get cookies.txt LOCALLY\" for Chrome).")
+        cookies_hint_font = cookies_hint.font()
+        cookies_hint_font.setItalic(True)
+        cookies_hint_font.setPointSize(cookies_hint_font.pointSize() - 1)
+        cookies_hint.setFont(cookies_hint_font)
+        cookies_hint.setEnabled(False)
+        cookies_hint.setWordWrap(True)
+        cookies_form.addRow("", cookies_hint)
+        layout.addWidget(cookies_group)
 
         btn_row = QHBoxLayout()
         btn_row.addStretch()
@@ -104,6 +136,17 @@ class SettingsDialog(QDialog):
         btn_row.addWidget(ok_btn)
         btn_row.addWidget(cancel_btn)
         layout.addLayout(btn_row)
+
+    def _on_cookies_toggled(self, checked: bool) -> None:
+        self.cookies_input.setEnabled(checked)
+        self.cookies_browse_btn.setEnabled(checked)
+
+    def _browse_cookies(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Select Cookies File", self.cookies_input.text(), "Text files (*.txt);;All files (*)"
+        )
+        if path:
+            self.cookies_input.setText(path)
 
     def _on_format_changed(self, index: int) -> None:
         is_flac = index == 1
@@ -137,5 +180,7 @@ class SettingsDialog(QDialog):
         self.config.set_auto_update(self.auto_update_check.isChecked())
         self.config.set_preferred_format(self.format_combo.currentText().lower())
         self.config.set_flac_compression_level(self.flac_spinbox.value())
+        self.config.set_cookies_enabled(self.cookies_check.isChecked())
+        self.config.set_cookies_path(self.cookies_input.text().strip())
         self.accept()
 

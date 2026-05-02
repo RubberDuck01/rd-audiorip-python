@@ -1,4 +1,4 @@
-name: Build EXE
+name: Build & Release
 
 on:
   pull_request:
@@ -36,7 +36,9 @@ jobs:
         run: python build.py
 
       - name: Package as 7z
-        run: 7z a "dist/RD-AudioRip-v${{ steps.version.outputs.value }}.7z" "dist/RD AudioRip.exe"
+        run: |
+          cd dist
+          7z a "RD-AudioRip-v${{ steps.version.outputs.value }}.7z" "RD AudioRip.exe"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -52,4 +54,3 @@ jobs:
           tag_name: v${{ steps.version.outputs.value }}
           name: RD AudioRip v${{ steps.version.outputs.value }}
           files: dist/RD-AudioRip-v${{ steps.version.outputs.value }}.7z
-          generate_release_notes: true

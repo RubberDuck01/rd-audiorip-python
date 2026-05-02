@@ -1,6 +1,7 @@
 from pathlib import Path
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from rd_audiorip.services.downloader import DownloadWorker, find_ytdlp_exe, get_playlist_info, get_video_info, get_video_metrics, update_ytdlp
+from rd_audiorip.services.updater import check_for_app_update
 from rd_audiorip.models.stats import Stats
 from rd_audiorip.ui.main_window import MainWindow
 
@@ -14,6 +15,14 @@ class AutoUpdateWorker(QObject):
             self.finished.emit("yt-dlp is up to date, AudioRip ready!")
         else:
             self.finished.emit("yt-dlp auto-update failed. Go to Tools → yt-dlp Settings to update manually.")
+
+
+class UpdateCheckerWorker(QObject):
+    finished = pyqtSignal(bool, str)  # (update_available, latest_version)
+
+    def run(self) -> None:
+        available, version = check_for_app_update()
+        self.finished.emit(available, version)
 
 class MainController(QObject):
     def __init__(self, window: MainWindow, stats: Stats) -> None:
@@ -31,8 +40,11 @@ class MainController(QObject):
         self._current_queue_row: int = -1
         self._playlist_total: int = 0
 
+        self._update_check_manual: bool = False
+
         self.window.download_requested.connect(self.start_download)
         self._maybe_auto_update_ytdlp()
+        self._check_for_app_update(manual=False)
 
     def _maybe_auto_update_ytdlp(self) -> None:
         if not self.window.config.auto_update:
@@ -52,6 +64,23 @@ class MainController(QObject):
         self._au_thread.finished.connect(self._au_thread.deleteLater)
         self._au_thread.start()
     
+    def _check_for_app_update(self, manual: bool = False) -> None:
+        self._update_check_manual = manual
+        self._uc_thread = QThread()
+        self._uc_worker = UpdateCheckerWorker()
+        self._uc_worker.moveToThread(self._uc_thread)
+        self._uc_thread.started.connect(self._uc_worker.run)
+        self._uc_worker.finished.connect(self._on_update_checked)
+        self._uc_worker.finished.connect(self._uc_thread.quit)
+        self._uc_thread.finished.connect(self._uc_thread.deleteLater)
+        self._uc_thread.start()
+
+    def _on_update_checked(self, update_available: bool, latest_version: str) -> None:
+        if update_available:
+            self.window.show_update_available(latest_version)
+        elif self._update_check_manual:
+            self.window.show_up_to_date()
+
     def start_download(self, url: str, output_dir: str) -> None:
         if self._thread is not None:
             self.window.set_status("Download already in progress!")
@@ -99,6 +128,8 @@ class MainController(QObject):
             embed_metadata=self.window.config.metadata,
             flac_compression_level=self.window.config.flac_compression_level,
             is_playlist=self.is_playlist,
+            cookies_enabled=self.window.config.cookies_enabled,
+            cookies_path=self.window.config.cookies_path,
         )
         self.worker.moveToThread(self._thread)
         

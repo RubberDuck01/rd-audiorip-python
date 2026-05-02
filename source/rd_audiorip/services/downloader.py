@@ -230,7 +230,7 @@ class DownloadWorker(QObject):
     output_file = pyqtSignal(str)
     download_size_mb = pyqtSignal(float)  # emitted once after process exits
     
-    def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int, is_playlist: bool = False) -> None:
+    def __init__(self, url: str, output_dir: str, preferred_format: str, embed_thumbnail: bool, embed_metadata: bool, flac_compression_level: int, is_playlist: bool = False, cookies_enabled: bool = False, cookies_path: str = "") -> None:
         super().__init__()
         self.url = url
         self.output_dir = output_dir
@@ -239,6 +239,8 @@ class DownloadWorker(QObject):
         self.embed_metadata = embed_metadata
         self.flac_compression_level = flac_compression_level
         self.is_playlist = is_playlist
+        self.cookies_enabled = cookies_enabled
+        self.cookies_path = cookies_path
     
     def run(self) -> None:
         ytdlp = find_ytdlp_exe()
@@ -286,7 +288,10 @@ class DownloadWorker(QObject):
         
         if self.embed_metadata:
             args.append("--embed-metadata")
-        
+
+        if self.cookies_enabled and self.cookies_path and Path(self.cookies_path).is_file():
+            args += ["--cookies", self.cookies_path]
+
         if fmt == "mp3":
             args += [
                 "--postprocessor-args",

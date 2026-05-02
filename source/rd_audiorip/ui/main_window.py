@@ -2,9 +2,10 @@ import os
 import webbrowser
 from pathlib import Path
 
-from PyQt6.QtCore import Qt, QUrl, pyqtSignal
+from PyQt6.QtCore import Qt, QEvent, QUrl, pyqtSignal
 from PyQt6.QtGui import QAction, QColor, QDesktopServices, QKeySequence, QPixmap
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QFileDialog,
     QFormLayout,
@@ -29,6 +30,7 @@ from rd_audiorip.ui.donation_dialog import DonationDialog
 from rd_audiorip.ui.ffmpeg_dialog import FfmpegDialog
 from rd_audiorip.ui.settings_dialog import SettingsDialog
 from rd_audiorip.ui.stats_dialog import StatsDialog
+from rd_audiorip.ui.update_dialog import UpdateAvailableDialog
 from rd_audiorip.ui.ytdlp_dialog import YtdlpDialog
 from rd_audiorip.resources import get_resources_dir
 from rd_audiorip.version import __version__
@@ -58,7 +60,7 @@ class MainWindow(QMainWindow):
         settings_action.setShortcut(QKeySequence("Ctrl+,"))
         file_menu.addAction(settings_action)
         file_menu.addSeparator()
-        quit_action = QAction("&Quit", self, triggered=self.close)
+        quit_action = QAction("&Exit", self, triggered=self.close)
         quit_action.setShortcut(QKeySequence("Ctrl+Q"))
         file_menu.addAction(quit_action)
 
@@ -66,17 +68,30 @@ class MainWindow(QMainWindow):
         clear_action = QAction("&Clear Queue", self, triggered=self.clear_queue)
         clear_action.setShortcut(QKeySequence("Ctrl+Shift+Del"))
         edit_menu.addAction(clear_action)
+        edit_menu.addSeparator()
+        self._clipboard_paste_action = QAction("&Auto-paste URL from Clipboard", self)
+        self._clipboard_paste_action.setCheckable(True)
+        self._clipboard_paste_action.setChecked(self.config.clipboard_paste_enabled)
+        self._clipboard_paste_action.toggled.connect(self._on_clipboard_paste_toggled)
+        edit_menu.addAction(self._clipboard_paste_action)
 
         view_menu = menubar.addMenu("&View")
         stats_action = QAction("&My Statistics", self, triggered=self.open_stats)
         stats_action.setShortcut(QKeySequence("Ctrl+Shift+S"))
         view_menu.addAction(stats_action)
+        view_menu.addSeparator()
+        self._always_on_top_action = QAction("&Always on Top", self)
+        self._always_on_top_action.setCheckable(True)
+        self._always_on_top_action.toggled.connect(self._on_always_on_top_toggled)
+        view_menu.addAction(self._always_on_top_action)
 
         tools_menu = menubar.addMenu("&Tools")
         tools_menu.addAction(QAction("&yt-dlp Settings", self, triggered=self.open_ytdlp_manager))
         tools_menu.addAction(QAction("&FFmpeg Settings", self, triggered=self.open_ffmpeg_manager))
 
         help_menu = menubar.addMenu("&Help")
+        help_menu.addAction(QAction("&Check for Updates", self, triggered=self.check_for_update))
+        help_menu.addSeparator()
         help_menu.addAction(QAction("&View Source on GitHub", self, triggered=self.visit_github))
         help_menu.addAction(QAction("&About RD AudioRip", self, triggered=self.open_about))
         help_menu.addAction(QAction("&About Qt", self, triggered=self.open_about_qt))
@@ -198,6 +213,27 @@ class MainWindow(QMainWindow):
         layout.addLayout(footer_row)
 
         self.setCentralWidget(root)
+
+    def changeEvent(self, event: QEvent) -> None:
+        if event.type() == QEvent.Type.ActivationChange and self.isActiveWindow():
+            if self.config.clipboard_paste_enabled and not self.url_input.text().strip():
+                text = QApplication.clipboard().text().strip()
+                if text.startswith("http"):
+                    self.url_input.setText(text)
+                    self.set_status("URL pasted from clipboard.")
+        super().changeEvent(event)
+
+    def _on_clipboard_paste_toggled(self, checked: bool) -> None:
+        self.config.set_clipboard_paste_enabled(checked)
+
+    def _on_always_on_top_toggled(self, checked: bool) -> None:
+        flags = self.windowFlags()
+        if checked:
+            flags |= Qt.WindowType.WindowStaysOnTopHint
+        else:
+            flags &= ~Qt.WindowType.WindowStaysOnTopHint
+        self.setWindowFlags(flags)
+        self.show()
 
     def browse_output(self) -> None:
         directory = QFileDialog.getExistingDirectory(self, "Select Downloads Directory", self.output_input.text())
@@ -362,6 +398,15 @@ class MainWindow(QMainWindow):
     def show_donation_popup(self) -> None:
         if not self.config.i_have_donated:
             DonationDialog(self).exec()
+
+    def show_update_available(self, latest_version: str) -> None:
+        UpdateAvailableDialog(self, latest_version=latest_version).exec()
+
+    def show_up_to_date(self) -> None:
+        QMessageBox.information(self, "RD AudioRip", "You're already on the latest version!")
+
+    def check_for_update(self) -> None:
+        self.controller._check_for_app_update(manual=True)
 
     def open_about_qt(self) -> None:
         QMessageBox.aboutQt(self)
